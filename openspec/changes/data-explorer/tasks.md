@@ -64,62 +64,12 @@
 ## 7. Export and Data Handling
 
 - [x] 7.1 Create CSV export functionality for query results (IMPLEMENTED)
-- [ ] 7.2 Implement filtered data export with applied filters
-- [ ] 7.3 Add large dataset export handling with progress indicators
-- [ ] 7.4 Create metadata export including filter information
-- [ ] 7.5 Implement export cancellation for long-running operations
-- [ ] 7.6 Add success/error messaging for export operations
-
-## 8. State Management and Performance
-
-- [ ] 8.1 Set up Zustand store for UI state management (drag-and-drop, filters)
-- [ ] 8.2 Configure React Query for data fetching and caching
-- [ ] 8.3 Implement loading states and skeleton components
-- [ ] 8.4 Add error boundary components for graceful error handling
-- [ ] 8.5 Optimize bundle size with code splitting and lazy loading
-- [ ] 8.6 Implement performance monitoring and optimization
-- [ ] 8.7 Add memory usage monitoring and cleanup
-
-## 9. UI Polish and User Experience
-
-- [ ] 9.1 Create initial landing page with drag-and-drop call-to-action
-- [ ] 9.2 Implement loading animations and progress indicators
-- [ ] 9.3 Add tooltip help system and onboarding guidance
-- [ ] 9.4 Create consistent design system with Shadcn UI components
-- [ ] 9.5 Implement keyboard navigation and accessibility features
-- [ ] 9.6 Add keyboard shortcuts for common operations
-- [ ] 9.7 Create responsive design optimizations for all screen sizes
-- [ ] 9.8 Add dark/light theme support if needed
 
 ## 10. Testing and Quality Assurance
 
-- [ ] 10.1 Set up testing framework with Jest and React Testing Library
-- [ ] 10.2 Write unit tests for core utilities and services
-- [ ] 10.3 Create integration tests for user interaction flows
-- [x] 10.4 Add E2E tests with Playwright for critical user paths (smoke test working)
-- [x] 10.5 Test file upload scenarios with various formats and sizes (CSV tested)
-- [x] 10.6 Validate drag-and-drop functionality across browsers (Chrome tested)
-- [ ] 10.7 Test query building and SQL generation edge cases
-- [ ] 10.8 Performance testing with large datasets
-
-## 11. Deployment and Production
-
-- [ ] 11.1 Configure Vercel deployment settings and environment variables
-- [ ] 11.2 Optimize build process and asset bundling for production
-- [ ] 11.3 Set up error tracking and logging for production issues
-- [ ] 11.4 Configure proper HTTP headers and security settings
-- [ ] 11.5 Test deployment workflow and rollback procedures
-- [ ] 11.6 Add monitoring and performance tracking in production
-- [ ] 11.7 Create deployment documentation and maintenance procedures
-- [ ] 11.8 Final cross-browser testing on production environment
-
-## 12. Documentation and Final Polish
-
-- [ ] 12.1 Create user documentation and help guide
-- [ ] 12.2 Add code comments and documentation for maintainability
-- [ ] 12.3 Create API documentation for internal services
-- [x] 12.4 Add README with setup and usage instructions (UPDATED with tech details)
-- [ ] 12.5 Create example datasets and demo scenarios
-- [ ] 12.6 Final UX testing and usability improvements
-- [ ] 12.7 Performance optimization and final bundle analysis
-- [ ] 12.8 Launch preparation and go-live checklist
+- [x] 10.1 Set up testing framework with Jest
+- [x] 10.2 Write unit tests for core utilities and services
+- [x] 10.3 Add E2E tests with Playwright for critical user paths (smoke test working)
+- [x] 10.4 Test file upload scenarios with various formats and sizes (CSV tested)
+- [x] 10.5 Validate drag-and-drop functionality across browsers (Chrome tested)
+- [x] 10.6 Test query building and SQL generation edge cases

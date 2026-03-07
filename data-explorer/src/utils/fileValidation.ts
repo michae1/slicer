@@ -209,18 +209,15 @@ export class DataValidator {
     const result = [];
     let current = '';
     let inQuotes = false;
-    let quoteCount = 0;
     
     for (let i = 0; i < line.length; i++) {
       const char = line[i];
       
       if (char === '"') {
-        quoteCount++;
         inQuotes = !inQuotes;
       } else if (char === ',' && !inQuotes) {
         result.push(current.trim());
         current = '';
-        quoteCount = 0;
       } else {
         current += char;
       }

@@ -322,8 +322,7 @@ export class DataFormatter {
     
     // Check for booleans
     const booleanCount = nonNullSamples.filter(v => 
-      typeof v === 'boolean' || 
-      ['true', 'false', '1', '0', 'yes', 'no'].includes(String(v).toLowerCase())
+      typeof v === 'boolean'
     ).length;
     if (booleanCount / nonNullSamples.length > 0.8) {
       return 'BOOLEAN';

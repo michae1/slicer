@@ -39,6 +39,7 @@ export class QueryCache {
     evictions: 0,
     expiredEntries: 0
   };
+  private cleanupTimer: NodeJS.Timeout | null = null;
 
   private constructor(config?: Partial<CacheConfig>) {
     this.config = {
@@ -122,6 +123,12 @@ export class QueryCache {
 
   clear(): void {
     this.cache.clear();
+    this.stats = {
+      hits: 0,
+      misses: 0,
+      evictions: 0,
+      expiredEntries: 0
+    };
   }
 
   getStats(): CacheStats {
@@ -227,9 +234,27 @@ export class QueryCache {
   }
 
   private startCleanupTimer(): void {
-    setInterval(() => {
+    if (this.cleanupTimer) {
+      clearInterval(this.cleanupTimer);
+    }
+    this.cleanupTimer = setInterval(() => {
       this.cleanupExpired();
     }, this.config.cleanupInterval);
+  }
+
+  destroy(): void {
+    if (this.cleanupTimer) {
+      clearInterval(this.cleanupTimer);
+      this.cleanupTimer = null;
+    }
+    this.clear();
+  }
+
+  static resetInstance(): void {
+    if (QueryCache.instance) {
+      QueryCache.instance.destroy();
+      QueryCache.instance = null as any;
+    }
   }
 
   private cleanupExpired(): void {
