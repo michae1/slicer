@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   DragEndEvent,
   DragOverlay,
@@ -67,12 +67,28 @@ export function GroupByZone({ className }: GroupByZoneProps) {
     addToGroupBy,
     removeFromGroupBy,
     moveGroupByColumn,
+    isGroupByExpanded,
+    setGroupByExpanded,
     draggedItem,
   } = useDragDropStore();
 
   const { setNodeRef, isOver } = useDroppable({
     id: 'group-by-zone',
   });
+
+  // Auto-expand when a column is added
+  useEffect(() => {
+    if (groupByColumns.length > 0) {
+      setGroupByExpanded(true);
+    }
+  }, [groupByColumns.length]);
+
+  // Auto-expand during drag over
+  useEffect(() => {
+    if (isOver) {
+      setGroupByExpanded(true);
+    }
+  }, [isOver]);
 
   const handleRemove = (columnName: string) => {
     removeFromGroupBy(columnName);
@@ -83,8 +99,8 @@ export function GroupByZone({ className }: GroupByZoneProps) {
   };
 
   return (
-    <div className={cn('bg-white rounded-lg border border-gray-200 p-4', className)}>
-      <div className="flex items-center justify-between mb-3">
+    <div className={cn('bg-white rounded-lg border border-gray-200 flex flex-col relative', className)}>
+      <div className="flex items-center justify-between p-3 border-b border-gray-100">
         <div className="flex items-center space-x-2">
           <div className="w-5 h-5 text-blue-600">
             <svg fill="currentColor" viewBox="0 0 20 20">
@@ -95,51 +111,80 @@ export function GroupByZone({ className }: GroupByZoneProps) {
           <span className="text-xs text-gray-500">({groupByColumns.length})</span>
         </div>
 
-        {groupByColumns.length > 0 && (
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={handleClearAll}
-            className="text-gray-500 hover:text-red-600"
-          >
-            Clear all
-          </Button>
-        )}
+        <div className="flex items-center space-x-1">
+          {groupByColumns.length > 0 && (
+            <>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={handleClearAll}
+                className="h-8 text-[11px] text-gray-500 hover:text-red-600 px-2"
+              >
+                Clear all
+              </Button>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setGroupByExpanded(!isGroupByExpanded)}
+                className="h-8 w-8 p-0"
+              >
+                <svg
+                  className={cn('w-4 h-4 transition-transform', isGroupByExpanded ? 'rotate-180' : '')}
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                </svg>
+              </Button>
+            </>
+          )}
+        </div>
       </div>
 
+      {/* Drop Area - Fixed Height */}
       <div
         ref={setNodeRef}
         id="group-by-zone"
+        onClick={() => setGroupByExpanded(!isGroupByExpanded)}
         className={cn(
-          'min-h-[60px] p-3 border-2 border-dashed border-gray-300 rounded-lg transition-colors',
-          'hover:border-blue-400 hover:bg-blue-50/50',
-          groupByColumns.length > 0 && 'border-solid border-gray-200 bg-gray-50',
-          isOver && 'border-blue-500 bg-blue-50'
+          'p-3 transition-colors touch-none h-[64px] flex items-center justify-center cursor-pointer',
+          isOver && 'bg-blue-50 border-2 border-dashed border-blue-400 rounded-b-lg'
         )}
       >
         {groupByColumns.length === 0 ? (
-          <div className="text-center py-3 text-gray-500">
-            <div className="text-2xl mb-2">🗂️</div>
-            <p className="text-sm">Drag dimensions here to group data</p>
-            <p className="text-xs text-gray-400 mt-1">Create aggregations by grouping data</p>
+          <div className="flex items-center space-x-2 text-gray-400">
+            <span className="text-lg">🗂️</span>
+            <span className="text-xs">Drag here</span>
           </div>
         ) : (
-          <SortableContext
-            items={groupByColumns.map(col => col.name)}
-            strategy={rectSortingStrategy}
-          >
-            <div className="flex flex-wrap gap-2">
-              {groupByColumns.map((column) => (
-                <SortableChip
-                  key={column.name}
-                  column={column}
-                  onRemove={handleRemove}
-                />
-              ))}
-            </div>
-          </SortableContext>
+          <div className="text-xs text-blue-600 font-medium bg-blue-50 px-3 py-1 rounded-full border border-blue-100">
+            {groupByColumns.length} dimension{groupByColumns.length > 1 ? 's' : ''} active
+          </div>
         )}
       </div>
+
+      {/* Expanded Content Panel - Overlay */}
+      {isGroupByExpanded && groupByColumns.length > 0 && (
+        <div className="absolute top-[calc(100%+4px)] left-0 right-0 z-[60] bg-white rounded-lg border border-gray-200 shadow-xl p-4 animate-in fade-in slide-in-from-top-2 duration-200 overflow-hidden">
+          <div className="max-h-[300px] overflow-y-auto pr-1">
+            <SortableContext
+              items={groupByColumns.map(col => col.name)}
+              strategy={rectSortingStrategy}
+            >
+              <div className="flex flex-wrap gap-2">
+                {groupByColumns.map((column) => (
+                  <SortableChip
+                    key={column.name}
+                    column={column}
+                    onRemove={handleRemove}
+                  />
+                ))}
+              </div>
+            </SortableContext>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

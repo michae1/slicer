@@ -9,6 +9,8 @@ interface DragDropState {
   groupByColumns: DatabaseColumn[];
   filterColumns: DatabaseColumn[];
   filterValues: Record<string, string[]>;
+  isGroupByExpanded: boolean;
+  isFiltersExpanded: boolean;
 
   // Actions
   setDraggedItem: (item: DatabaseColumn | null) => void;
@@ -20,6 +22,9 @@ interface DragDropState {
   removeFromFilters: (columnName: string) => void;
   setFilterValues: (columnName: string, values: string[]) => void;
   clearAllFilters: () => void;
+  setGroupByExpanded: (expanded: boolean) => void;
+  setFiltersExpanded: (expanded: boolean) => void;
+  collapseAllZones: () => void;
   clearAll: () => void;
 }
 
@@ -29,6 +34,8 @@ export const useDragDropStore = create<DragDropState>((set, get) => ({
   groupByColumns: [],
   filterColumns: [],
   filterValues: {},
+  isGroupByExpanded: false,
+  isFiltersExpanded: false,
 
   setDraggedItem: (item) => set({ draggedItem: item }),
 
@@ -101,9 +108,15 @@ export const useDragDropStore = create<DragDropState>((set, get) => ({
     filterValues: {}
   }),
 
+  setGroupByExpanded: (expanded) => set({ isGroupByExpanded: expanded }),
+  setFiltersExpanded: (expanded) => set({ isFiltersExpanded: expanded }),
+  collapseAllZones: () => set({ isGroupByExpanded: false, isFiltersExpanded: false }),
+
   clearAll: () => set({
     groupByColumns: [],
     filterColumns: [],
-    filterValues: {}
+    filterValues: {},
+    isGroupByExpanded: false,
+    isFiltersExpanded: false
   })
 }));

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useDroppable } from '@dnd-kit/core';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
@@ -9,7 +9,7 @@ import { ColumnChip, getColumnTypeColor } from '@/components/ColumnChip';
 interface FiltersZoneProps {
   className?: string;
   availableValues?: Record<string, string[]>;
-  isLoadingValues?: boolean;
+  isLoadingValues?: Record<string, boolean>;
 }
 
 interface FilterSectionProps {
@@ -181,18 +181,34 @@ function FilterSection({
 export function FiltersZone({
   className,
   availableValues = {},
-  isLoadingValues = false
+  isLoadingValues = {}
 }: FiltersZoneProps) {
   const {
     filterColumns,
     filterValues,
     removeFromFilters,
     setFilterValues,
+    isFiltersExpanded,
+    setFiltersExpanded,
   } = useDragDropStore();
 
   const { setNodeRef, isOver } = useDroppable({
     id: 'filters-zone',
   });
+
+  // Auto-expand when a column is added
+  useEffect(() => {
+    if (filterColumns.length > 0) {
+      setFiltersExpanded(true);
+    }
+  }, [filterColumns.length]);
+
+  // Auto-expand during drag over
+  useEffect(() => {
+    if (isOver) {
+      setFiltersExpanded(true);
+    }
+  }, [isOver]);
 
   const handleFilterValuesChange = (columnName: string, values: string[]) => {
     setFilterValues(columnName, values);
@@ -203,8 +219,8 @@ export function FiltersZone({
   };
 
   return (
-    <div className={cn('bg-white rounded-lg border border-gray-200 p-4', className)}>
-      <div className="flex items-center justify-between mb-3">
+    <div className={cn('bg-white rounded-lg border border-gray-200 flex flex-col relative', className)}>
+      <div className="flex items-center justify-between p-3 border-b border-gray-100">
         <div className="flex items-center space-x-2">
           <div className="w-5 h-5 text-green-600">
             <svg fill="currentColor" viewBox="0 0 20 20">
@@ -215,50 +231,79 @@ export function FiltersZone({
           <span className="text-xs text-gray-500">({filterColumns.length})</span>
         </div>
 
-        {filterColumns.length > 0 && (
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={handleClearAllFilters}
-            className="text-gray-500 hover:text-red-600"
-          >
-            Clear all
-          </Button>
-        )}
+        <div className="flex items-center space-x-1">
+          {filterColumns.length > 0 && (
+            <>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={handleClearAllFilters}
+                className="h-8 text-[11px] text-gray-500 hover:text-red-600 px-2"
+              >
+                Clear all
+              </Button>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setFiltersExpanded(!isFiltersExpanded)}
+                className="h-8 w-8 p-0"
+              >
+                <svg
+                  className={cn('w-4 h-4 transition-transform', isFiltersExpanded ? 'rotate-180' : '')}
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                </svg>
+              </Button>
+            </>
+          )}
+        </div>
       </div>
 
+      {/* Drop Area - Fixed Height */}
       <div
         ref={setNodeRef}
         id="filters-zone"
+        onClick={() => setFiltersExpanded(!isFiltersExpanded)}
         className={cn(
-          'min-h-[60px] p-3 border-2 border-dashed border-gray-300 rounded-lg transition-colors',
-          'hover:border-green-400 hover:bg-green-50/50',
-          filterColumns.length > 0 && 'border-solid border-gray-200 bg-gray-50',
-          isOver && 'border-green-500 bg-green-50'
+          'p-3 transition-colors touch-none h-[64px] flex items-center justify-center cursor-pointer',
+          isOver && 'bg-green-50 border-2 border-dashed border-green-400 rounded-b-lg'
         )}
       >
         {filterColumns.length === 0 ? (
-          <div className="text-center py-3 text-gray-500">
-            <div className="text-2xl mb-2">🔍</div>
-            <p className="text-sm">Drag dimensions here to add filters</p>
-            <p className="text-xs text-gray-400 mt-1">Select specific values to focus your analysis</p>
+          <div className="flex items-center space-x-2 text-gray-400">
+            <span className="text-lg">🔍</span>
+            <span className="text-xs">Drag here</span>
           </div>
         ) : (
-          <div className="space-y-3">
-            {filterColumns.map((column) => (
-              <FilterSection
-                key={column.name}
-                column={column}
-                selectedValues={filterValues[column.name] || []}
-                availableValues={availableValues[column.name] || []}
-                onValuesChange={(values) => handleFilterValuesChange(column.name, values)}
-                onRemove={removeFromFilters}
-                isLoading={isLoadingValues}
-              />
-            ))}
+          <div className="text-xs text-green-600 font-medium bg-green-50 px-3 py-1 rounded-full border border-green-100">
+            {filterColumns.length} filter{filterColumns.length > 1 ? 's' : ''} active
           </div>
         )}
       </div>
+
+      {/* Expanded Content Panel - Overlay */}
+      {isFiltersExpanded && filterColumns.length > 0 && (
+        <div className="absolute top-[calc(100%+4px)] left-0 right-0 z-[60] bg-white rounded-lg border border-gray-200 shadow-xl p-4 animate-in fade-in slide-in-from-top-2 duration-200 overflow-hidden">
+          <div className="max-h-[400px] overflow-y-auto pr-1">
+            <div className="space-y-4">
+              {filterColumns.map((column) => (
+                <FilterSection
+                  key={column.name}
+                  column={column}
+                  selectedValues={filterValues[column.name] || []}
+                  availableValues={availableValues[column.name] || []}
+                  onValuesChange={(values) => handleFilterValuesChange(column.name, values)}
+                  onRemove={removeFromFilters}
+                  isLoading={isLoadingValues[column.name]}
+                />
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

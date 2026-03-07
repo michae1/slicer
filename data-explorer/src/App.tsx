@@ -359,7 +359,7 @@ function App() {
                   <GroupByZone />
                   <FiltersZone
                     availableValues={availableValues}
-                    isLoadingValues={Object.values(isLoadingValues).some(Boolean)}
+                    isLoadingValues={isLoadingValues}
                   />
                 </div>
 

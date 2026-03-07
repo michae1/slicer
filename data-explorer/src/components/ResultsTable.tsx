@@ -1,6 +1,7 @@
 import { useState, useMemo, useRef } from 'react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
+import { useDragDropStore } from '@/stores/dragDropStore';
 import type { QueryResult } from '@/utils/database';
 
 interface ResultsTableProps {
@@ -65,6 +66,7 @@ export function ResultsTable({
   const tableContainerRef = useRef<HTMLDivElement>(null);
   const headerRef = useRef<HTMLDivElement>(null);
   const bodyScrollRef = useRef<HTMLDivElement>(null);
+  const { collapseAllZones } = useDragDropStore();
 
   const { columns, rows } = result;
 
@@ -205,7 +207,10 @@ export function ResultsTable({
   }
 
   return (
-    <div className={cn('bg-white rounded-lg border border-gray-200 flex flex-col', className)}>
+    <div
+      onClick={() => collapseAllZones()}
+      className={cn('bg-white rounded-lg border border-gray-200 flex flex-col cursor-default', className)}
+    >
       {/* Header */}
       <div className="px-4 md:px-6 py-4 border-b border-gray-200">
         <div className="flex items-center justify-between flex-wrap gap-2">
