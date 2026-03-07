@@ -1,48 +1,32 @@
 # Data Explorer
 
-A powerful, client-side data exploration tool built with React and DuckDB WASM. Upload CSV, Parquet, or GeoJSON files and explore your data with SQL queries - all in your browser, no server required.
+A client‑side data explorer built with React and DuckDB WASM. Upload CSV (and eventually Parquet/GeoJSON) and query your data in the browser.
+
+**Live demo:** https://slicer-ckzv.vercel.app/
+
+---
 
 ## Features
 
-- **File Upload**: Support for CSV, Parquet, and GeoJSON files
-- **In-Browser Processing**: All data processing happens locally using DuckDB WASM
-- **SQL Query Interface**: Build and execute SQL queries with a visual interface
-- **Drag & Drop Interface**: Drag dimensions to Group By or Filters zones for easy query building
-- **Data Visualization**: Interactive tables with sorting, filtering, and pagination
-- **Memory Efficient**: Data stays in browser memory, no server uploads required
-
-## Current Status
-
-### ✅ Working Features
 - CSV file upload and parsing
-- Automatic schema inference (INTEGER, DOUBLE, VARCHAR, DATE types)
-- Data table display with pagination
-- Basic SQL query execution
-- **Drag & Drop Query Builder**: Drag dimensions to Group By and Filters zones
-- File validation and error handling
+- Client‑side SQL querying using DuckDB WASM
+- Drag‑and‑drop query builder (dimensions → Group By/Filters)
+- Interactive results table with sorting, paging and formatting
+- No backend – all work happens in browser memory
 
-### 🚧 In Development
-- Parquet file support
-- GeoJSON file support
-- Advanced query builder UI
-- Data visualization charts
-- Export functionality
+## Status
 
-### ❌ Known Issues
-- File processing may timeout on very large files (>10MB)
-- DuckDB WASM initialization can be slow on first load
-- Limited to browser memory constraints
+✅ Core CSV upload + schema inference works
 
-## Technical Architecture
+✅ Drag‑drop query builder and results table are functional
 
-### Core Dependencies
-- **React 19.2.0** - UI framework
-- **DuckDB WASM** - In-browser database engine
-- **@dnd-kit** - Drag and drop interactions
-- **@tanstack/react-query** - Data fetching and caching
-- **Zustand** - State management
-- **Tailwind CSS** - Styling
-- **Playwright** - End-to-end testing
+🚧 Parquet/GeoJSON support, charts and exports still in progress
+
+⚠️ Can struggle with very large (>10 MB) files due to browser memory
+
+## Tech stack
+
+React + Vite, DuckDB‑WASM, @dnd‑kit for drag‑drop, Zustand for state, Tailwind for styling. Playwright powers the E2E tests.
 
 ## Drag & Drop Query Builder
 
@@ -60,18 +44,21 @@ The Data Explorer features an intuitive drag-and-drop interface for building SQL
 ### Drag & Drop Features
 
 #### Source: Sidebar
+
 - **Dimensions Tab**: String/categorical fields (green badges)
 - **Metrics Tab**: Numeric fields (blue/purple badges)
 - **Search**: Filter columns by name
 - **Draggable**: Every column is draggable with visual feedback
 
 #### Target: Group By Zone
+
 - **Visual feedback**: Zone highlights when draggable items are hovering
 - **Duplicate prevention**: Cannot add the same column twice
 - **Reordering**: Drag chips within the zone to change order
 - **Clear all**: Remove all dimensions at once
 
-#### Target: Filters Zone  
+#### Target: Filters Zone
+
 - **Visual feedback**: Zone highlights when draggable items are hovering
 - **Duplicate prevention**: Cannot add the same column twice
 - **Value selection**: After dropping, select specific values to filter by
@@ -92,7 +79,7 @@ The drag-and-drop functionality uses `@dnd-kit/core` and `@dnd-kit/sortable`:
 src/
 ├── components/
 │   ├── layout/Sidebar.tsx    # Draggable columns
-│   ├── GroupByZone.tsx       # Drop zone with reorderable chips  
+│   ├── GroupByZone.tsx       # Drop zone with reorderable chips
 │   └── FiltersZone.tsx       # Drop zone with filter controls
 ├── stores/
 │   └── dragDropStore.ts      # State management for drag & drop
@@ -102,26 +89,17 @@ src/
 
 ## File Structure
 
-### Development Server
-```bash
-npm run dev
-```
-Opens at http://localhost:5175 (port may vary)
+### Getting started
 
-### Build
 ```bash
-npm run build
-```
-
-### Testing
-```bash
-npx playwright test
+npm install
+npm run dev       # start local server
+npm run build     # production bundle
+npm run lint      # run eslint
+npm run test:e2e  # playwrite end‑to‑end tests
 ```
 
-### Linting
-```bash
-npm run lint
-```
+Local app runs at http://localhost:5173 by default.
 
 ## File Structure
 
@@ -156,6 +134,7 @@ The application implements a robust CSV parser that handles:
 - **Data Validation**: Validates file format, size, and structure
 
 ### Type Inference Logic
+
 ```typescript
 // Simple type detection
 - Empty/null values → VARCHAR
@@ -167,17 +146,20 @@ The application implements a robust CSV parser that handles:
 ## Testing Strategy
 
 ### Smoke Test
+
 - **File**: `tests/smoke.spec.ts`
 - **Coverage**: Full upload → processing → results flow
 - **Timeout**: 30 seconds for file processing
 
 ### Test Data
+
 - **Location**: `public/test-data.csv`
 - **Content**: 10 rows with mixed data types (name, age, city, department, salary)
 
 ## Recent Changes
 
 ### Fixed Issues
+
 1. **DuckDB WASM Blob URL Issue** (Mar 2026)
    - Problem: `IO Error: No files found that match blob:...`
    - Solution: Replaced blob URLs with manual CSV parsing
@@ -232,6 +214,7 @@ The application implements a robust CSV parser that handles:
 ## Contributing
 
 When contributing, please:
+
 1. Update tests for new features
 2. Run `npm run lint` before committing
 3. Update this documentation for significant changes
