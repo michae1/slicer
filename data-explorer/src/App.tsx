@@ -8,6 +8,11 @@ import {
   useSensor,
   useSensors,
 } from '@dnd-kit/core';
+import {
+  SortableContext,
+  useSortable,
+  rectSortingStrategy,
+} from '@dnd-kit/sortable';
 import { FileUpload } from './components/FileUpload';
 import { Sidebar } from './components/layout/Sidebar';
 import { GroupByZone } from './components/GroupByZone';
@@ -80,13 +85,16 @@ function App() {
       const column = active.data.current?.column;
       if (!column) return;
 
-      const dropOnGroupBy = overId === 'group-by-zone' || groupByColumns.some(col => col.name === overId);
-      const dropOnFilters = overId === 'filters-zone' || filterColumns.some(col => col.name === overId);
+      const overGroupByItemIndex = groupByColumns.findIndex(col => col.name === overId);
+      const overFilterItemIndex = filterColumns.findIndex(col => col.name === overId);
 
-      if (dropOnGroupBy) {
-        addToGroupBy(column);
-      } else if (dropOnFilters) {
-        addToFilters(column);
+      if (overId === 'group-by-zone') {
+        addToGroupBy(column); // Add to end of group by zone
+      } else if (overGroupByItemIndex !== -1) {
+        // Dropped over an existing item in Group By zone, insert at its index
+        addToGroupBy(column, overGroupByItemIndex);
+      } else if (overId === 'filters-zone' || overFilterItemIndex !== -1) {
+        addToFilters(column, overFilterItemIndex !== -1 ? overFilterItemIndex : undefined);
         refreshAvailableValues(column.name);
       }
       return;
@@ -119,7 +127,7 @@ function App() {
         [columnName]: values
       }));
     } catch (err) {
-      console.error(`Failed to fetch values for ${columnName}:`, err);
+      console.error(`Failed to fetch values for ${columnName}: `, err);
     } finally {
       setIsLoadingValues(prev => ({ ...prev, [columnName]: false }));
     }
@@ -190,7 +198,8 @@ function App() {
       // Build WHERE clause from filters
       Object.entries(filterValues).forEach(([colName, selectedValues]) => {
         if (selectedValues.length > 0) {
-          const valuesList = selectedValues.map(v => `'${v.replace(/'/g, "''")}'`).join(', ');
+          // Fix: Ensure single quotes are properly escaped for SQL string literals
+          const valuesList = selectedValues.map(v => `'${String(v).replace(/'/g, "''")}'`).join(', ');
           whereClauses.push(`"${colName}" IN (${valuesList})`);
         }
       });

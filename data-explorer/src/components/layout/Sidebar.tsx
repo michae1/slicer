@@ -41,6 +41,7 @@ function DraggableColumn({ column, activeSection, onColumnSelect }: DraggableCol
         column={column}
         isDragging={isDragging}
         className="w-full"
+        showHandle={true}
       />
     </div>
   );

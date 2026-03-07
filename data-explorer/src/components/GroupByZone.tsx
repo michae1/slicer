@@ -8,7 +8,7 @@ import {
 import {
   SortableContext,
   useSortable,
-  verticalListSortingStrategy,
+  rectSortingStrategy,
 } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import { cn } from '@/lib/utils';
@@ -126,7 +126,7 @@ export function GroupByZone({ className }: GroupByZoneProps) {
         ) : (
           <SortableContext
             items={groupByColumns.map(col => col.name)}
-            strategy={verticalListSortingStrategy}
+            strategy={rectSortingStrategy}
           >
             <div className="flex flex-wrap gap-2">
               {groupByColumns.map((column) => (

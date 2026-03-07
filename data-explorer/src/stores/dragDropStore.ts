@@ -9,14 +9,14 @@ interface DragDropState {
   groupByColumns: DatabaseColumn[];
   filterColumns: DatabaseColumn[];
   filterValues: Record<string, string[]>;
-  
+
   // Actions
   setDraggedItem: (item: DatabaseColumn | null) => void;
   setDropZone: (zone: DropZone) => void;
-  addToGroupBy: (column: DatabaseColumn) => void;
+  addToGroupBy: (column: DatabaseColumn, index?: number) => void;
   removeFromGroupBy: (columnName: string) => void;
   moveGroupByColumn: (fromIndex: number, toIndex: number) => void;
-  addToFilters: (column: DatabaseColumn) => void;
+  addToFilters: (column: DatabaseColumn, index?: number) => void;
   removeFromFilters: (columnName: string) => void;
   setFilterValues: (columnName: string, values: string[]) => void;
   clearAllFilters: () => void;
@@ -31,15 +31,19 @@ export const useDragDropStore = create<DragDropState>((set, get) => ({
   filterValues: {},
 
   setDraggedItem: (item) => set({ draggedItem: item }),
-  
+
   setDropZone: (zone) => set({ dropZone: zone }),
 
-  addToGroupBy: (column) => set((state) => {
+  addToGroupBy: (column, index) => set((state) => {
     const existingIndex = state.groupByColumns.findIndex(col => col.name === column.name);
     if (existingIndex === -1) {
-      return {
-        groupByColumns: [...state.groupByColumns, column]
-      };
+      const newColumns = [...state.groupByColumns];
+      if (index !== undefined) {
+        newColumns.splice(index, 0, column);
+      } else {
+        newColumns.push(column);
+      }
+      return { groupByColumns: newColumns };
     }
     return state;
   }),
@@ -55,11 +59,17 @@ export const useDragDropStore = create<DragDropState>((set, get) => ({
     return { groupByColumns: newGroupByColumns };
   }),
 
-  addToFilters: (column) => set((state) => {
+  addToFilters: (column, index) => set((state) => {
     const existingIndex = state.filterColumns.findIndex(col => col.name === column.name);
     if (existingIndex === -1) {
+      const newColumns = [...state.filterColumns];
+      if (index !== undefined) {
+        newColumns.splice(index, 0, column);
+      } else {
+        newColumns.push(column);
+      }
       return {
-        filterColumns: [...state.filterColumns, column],
+        filterColumns: newColumns,
         filterValues: {
           ...state.filterValues,
           [column.name]: []
@@ -72,7 +82,7 @@ export const useDragDropStore = create<DragDropState>((set, get) => ({
   removeFromFilters: (columnName) => set((state) => {
     const newFilterValues = { ...state.filterValues };
     delete newFilterValues[columnName];
-    
+
     return {
       filterColumns: state.filterColumns.filter(col => col.name !== columnName),
       filterValues: newFilterValues
