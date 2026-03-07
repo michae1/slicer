@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import {
   DndContext,
   DragEndEvent,
@@ -32,7 +32,17 @@ function App() {
 
   const { progress, stage, isProcessing, error, startProcessing, updateProgress, completeProcessing, reset } = useProgressState();
   const { validateFile } = useFileValidation();
-  const { setDraggedItem, addToGroupBy, addToFilters, moveGroupByColumn, groupByColumns, filterColumns, draggedItem } = useDragDropStore();
+  const {
+    setDraggedItem,
+    addToGroupBy,
+    addToFilters,
+    moveGroupByColumn,
+    groupByColumns,
+    filterColumns,
+    filterValues,
+    draggedItem,
+    clearAll
+  } = useDragDropStore();
 
   const dbManager = DatabaseManager.getInstance();
   const memoryManager = MemoryManager.getInstance();
@@ -118,6 +128,9 @@ function App() {
   const handleFileSelect = async (file: File) => {
     console.log('Starting file processing for:', file.name);
     reset();
+    clearAll();
+    setAvailableValues({});
+    setIsLoadingValues({});
     startProcessing('Validating file...');
 
     try {
@@ -166,6 +179,61 @@ function App() {
       setTimeout(() => reset(), 3000);
     }
   };
+
+  const runAnalysis = useCallback(async () => {
+    if (!currentTable || !isDataLoaded) return;
+
+    try {
+      let query = '';
+      const whereClauses: string[] = [];
+
+      // Build WHERE clause from filters
+      Object.entries(filterValues).forEach(([colName, selectedValues]) => {
+        if (selectedValues.length > 0) {
+          const valuesList = selectedValues.map(v => `'${v.replace(/'/g, "''")}'`).join(', ');
+          whereClauses.push(`"${colName}" IN (${valuesList})`);
+        }
+      });
+
+      const wherePart = whereClauses.length > 0 ? `WHERE ${whereClauses.join(' AND ')}` : '';
+
+      if (groupByColumns.length > 0) {
+        // Aggregated view
+        const groupCols = groupByColumns.map(col => `"${col.name}"`).join(', ');
+        query = `
+          SELECT 
+            ${groupCols},
+            COUNT(*) as "Count",
+            COUNT(DISTINCT "${columns[0]?.name || '*'}") as "Unique_Values"
+          FROM ${currentTable}
+          ${wherePart}
+          GROUP BY ${groupCols}
+          ORDER BY "Count" DESC
+          LIMIT 100
+        `;
+      } else {
+        // Simple filtered view
+        query = `SELECT * FROM ${currentTable} ${wherePart} LIMIT 100`;
+      }
+
+      console.log('Running analysis query:', query);
+      const startTime = Date.now();
+      const result = await dbManager.executeQuery(query);
+      setQueryResult({
+        ...result,
+        executionTime: Date.now() - startTime
+      });
+    } catch (err) {
+      console.error('Analysis query failed:', err);
+    }
+  }, [currentTable, isDataLoaded, groupByColumns, filterValues, columns]);
+
+  // Re-run analysis when query state changes
+  useEffect(() => {
+    if (isDataLoaded) {
+      runAnalysis();
+    }
+  }, [runAnalysis, isDataLoaded]);
 
   const handleColumnSelect = (column: DatabaseColumn) => {
     console.log('Column selected:', column.name);
@@ -263,6 +331,9 @@ function App() {
                       setCurrentTable(null);
                       setColumns([]);
                       setQueryResult(null);
+                      setAvailableValues({});
+                      setIsLoadingValues({});
+                      clearAll();
                       reset();
                     }}
                     className="px-4 py-2 text-sm bg-gray-100 text-gray-700 rounded hover:bg-gray-200 transition-colors"
@@ -273,7 +344,7 @@ function App() {
               </div>
 
               {/* Content Area */}
-              <div className="flex-1 overflow-hidden p-6 space-y-6">
+              <div className="flex-1 flex flex-col overflow-hidden p-6 space-y-6">
                 {/* Query Builder Zones */}
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                   <GroupByZone />
@@ -284,13 +355,12 @@ function App() {
                 </div>
 
                 {/* Results */}
-                <div className="flex-1">
+                <div className="flex-1 min-h-0 overflow-hidden">
                   {queryResult ? (
                     <ResultsTable
                       result={queryResult}
                       className="h-full"
                       sortable={true}
-                      selectable={true}
                       executionTime={queryResult.executionTime}
                     />
                   ) : (

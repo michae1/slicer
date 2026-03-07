@@ -7,8 +7,6 @@ interface ResultsTableProps {
   result: QueryResult;
   className?: string;
   sortable?: boolean;
-  selectable?: boolean;
-  onRowSelect?: (rowIndex: number, selected: boolean) => void;
   onSort?: (column: string, direction: 'asc' | 'desc') => void;
   maxRows?: number;
   executionTime?: number;
@@ -53,8 +51,6 @@ export function ResultsTable({
   result,
   className,
   sortable = true,
-  selectable = true,
-  onRowSelect,
   onSort,
   maxRows = 10000,
   executionTime
@@ -63,7 +59,6 @@ export function ResultsTable({
     column: null,
     direction: null
   });
-  const [selectedRows, setSelectedRows] = useState<Set<number>>(new Set());
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(PAGE_SIZE);
   const [isExporting, setIsExporting] = useState(false);
@@ -92,7 +87,7 @@ export function ResultsTable({
     if (!sortable) return;
 
     const column = columns[columnIndex];
-    const newDirection: 'asc' | 'desc' = 
+    const newDirection: 'asc' | 'desc' =
       sortState.column === column && sortState.direction === 'asc' ? 'desc' : 'asc';
 
     setSortState({
@@ -101,25 +96,6 @@ export function ResultsTable({
     });
 
     onSort?.(column, newDirection);
-  };
-
-  const handleRowSelect = (rowIndex: number, selected: boolean) => {
-    const newSelectedRows = new Set(selectedRows);
-    if (selected) {
-      newSelectedRows.add(rowIndex);
-    } else {
-      newSelectedRows.delete(rowIndex);
-    }
-    setSelectedRows(newSelectedRows);
-    onRowSelect?.(rowIndex, selected);
-  };
-
-  const handleSelectAll = () => {
-    if (selectedRows.size === rows.length) {
-      setSelectedRows(new Set());
-    } else {
-      setSelectedRows(new Set(rows.map((_, index) => index)));
-    }
   };
 
   const handlePageChange = (page: number) => {
@@ -159,7 +135,7 @@ export function ResultsTable({
       // Handle string values
       const aStr = String(aVal).toLowerCase();
       const bStr = String(bVal).toLowerCase();
-      
+
       if (aStr < bStr) return sortState.direction === 'asc' ? -1 : 1;
       if (aStr > bStr) return sortState.direction === 'asc' ? 1 : -1;
       return 0;
@@ -168,7 +144,7 @@ export function ResultsTable({
 
   const formatValue = (value: any): string => {
     if (value === null || value === undefined) return 'NULL';
-    
+
     if (typeof value === 'number') {
       // Format large numbers with commas
       if (value >= 1000000) {
@@ -176,22 +152,22 @@ export function ResultsTable({
       }
       // Format decimals
       if (value % 1 !== 0) {
-        return value.toLocaleString(undefined, { 
-          minimumFractionDigits: 2, 
-          maximumFractionDigits: 6 
+        return value.toLocaleString(undefined, {
+          minimumFractionDigits: 2,
+          maximumFractionDigits: 6
         });
       }
       return value.toLocaleString();
     }
-    
+
     if (typeof value === 'boolean') {
       return value ? 'TRUE' : 'FALSE';
     }
-    
+
     if (typeof value === 'string' && value.length > 50) {
       return value.substring(0, 47) + '...';
     }
-    
+
     return String(value);
   };
 
@@ -204,7 +180,7 @@ export function ResultsTable({
         </svg>
       );
     }
-    
+
     return sortState.direction === 'asc' ? (
       <svg className="w-4 h-4 text-blue-600" fill="currentColor" viewBox="0 0 20 20">
         <path fillRule="evenodd" d="M14.707 12.707a1 1 0 01-1.414 0L10 9.414l-3.293 3.293a1 1 0 01-1.414-1.414l4-4a1 1 0 011.414 0l4 4a1 1 0 010 1.414z" clipRule="evenodd" />
@@ -250,11 +226,6 @@ export function ResultsTable({
                 {executionTime.toFixed(2)}ms
               </span>
             )}
-            {selectable && selectedRows.size > 0 && (
-              <span className="text-sm text-gray-600">
-                {selectedRows.size} selected
-              </span>
-            )}
             <Button
               variant="outline"
               size="sm"
@@ -263,37 +234,20 @@ export function ResultsTable({
             >
               {isExporting ? 'Exporting...' : 'Export CSV'}
             </Button>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => handleSort(Math.floor(Math.random() * columns.length))}
-            >
-              Random Sort
-            </Button>
           </div>
         </div>
       </div>
 
       {/* Table */}
-      <div className="flex flex-col h-full">
+      <div className="flex-1 flex flex-col min-h-0">
         {/* Horizontal scroll header */}
-        <div 
+        <div
           ref={headerRef}
           className="overflow-hidden border-b border-gray-200 bg-gray-50"
         >
           <table className="min-w-full">
             <thead>
               <tr>
-                {selectable && (
-                  <th className="px-6 py-3 w-12 sticky left-0 bg-gray-50 z-10">
-                    <input
-                      type="checkbox"
-                      checked={selectedRows.size === rows.length && rows.length > 0}
-                      onChange={handleSelectAll}
-                      className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
-                    />
-                  </th>
-                )}
                 <th className="px-6 py-3 w-12 sticky left-0 bg-gray-50 z-10 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                   #
                 </th>
@@ -318,7 +272,7 @@ export function ResultsTable({
         </div>
 
         {/* Scrollable body */}
-        <div 
+        <div
           ref={bodyScrollRef}
           className="overflow-auto flex-1"
         >
@@ -329,21 +283,8 @@ export function ResultsTable({
                 return (
                   <tr
                     key={rowIndex}
-                    className={cn(
-                      'hover:bg-gray-50 transition-colors',
-                      selectedRows.has(rowIndex) && 'bg-blue-50'
-                    )}
+                    className="hover:bg-gray-50 transition-colors"
                   >
-                    {selectable && (
-                      <td className="px-6 py-4 w-12 sticky left-0 bg-white z-10">
-                        <input
-                          type="checkbox"
-                          checked={selectedRows.has(rowIndex)}
-                          onChange={(e) => handleRowSelect(rowIndex, e.target.checked)}
-                          className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
-                        />
-                      </td>
-                    )}
                     <td className="px-6 py-4 w-12 sticky left-0 bg-white z-10 text-sm font-medium text-gray-900">
                       {rowIndex + 1}
                     </td>
