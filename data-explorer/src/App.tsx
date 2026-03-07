@@ -27,6 +27,8 @@ function App() {
   const [columns, setColumns] = useState<DatabaseColumn[]>([]);
   const [queryResult, setQueryResult] = useState<QueryResult | null>(null);
   const [isDataLoaded, setIsDataLoaded] = useState(false);
+  const [availableValues, setAvailableValues] = useState<Record<string, string[]>>({});
+  const [isLoadingValues, setIsLoadingValues] = useState<Record<string, boolean>>({});
 
   const { progress, stage, isProcessing, error, startProcessing, updateProgress, completeProcessing, reset } = useProgressState();
   const { validateFile } = useFileValidation();
@@ -75,6 +77,7 @@ function App() {
         addToGroupBy(column);
       } else if (dropOnFilters) {
         addToFilters(column);
+        refreshAvailableValues(column.name);
       }
       return;
     }
@@ -89,6 +92,26 @@ function App() {
       } else if (overId === 'group-by-zone') {
         moveGroupByColumn(activeIndex, groupByColumns.length - 1);
       }
+    }
+  };
+
+  const refreshAvailableValues = async (columnName: string) => {
+    if (!currentTable) return;
+
+    setIsLoadingValues(prev => ({ ...prev, [columnName]: true }));
+    try {
+      const query = `SELECT DISTINCT "${columnName}" FROM ${currentTable} WHERE "${columnName}" IS NOT NULL ORDER BY "${columnName}" LIMIT 100`;
+      const result = await dbManager.executeQuery(query);
+      const values = result.rows.map(row => String(row[0]));
+
+      setAvailableValues(prev => ({
+        ...prev,
+        [columnName]: values
+      }));
+    } catch (err) {
+      console.error(`Failed to fetch values for ${columnName}:`, err);
+    } finally {
+      setIsLoadingValues(prev => ({ ...prev, [columnName]: false }));
     }
   };
 
@@ -254,7 +277,10 @@ function App() {
                 {/* Query Builder Zones */}
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                   <GroupByZone />
-                  <FiltersZone />
+                  <FiltersZone
+                    availableValues={availableValues}
+                    isLoadingValues={Object.values(isLoadingValues).some(Boolean)}
+                  />
                 </div>
 
                 {/* Results */}
