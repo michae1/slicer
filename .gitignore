@@ -32,3 +32,4 @@ test-results
 .agent
 .github/prompts
 .github/skills
+node_modules
