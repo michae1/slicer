@@ -7,6 +7,7 @@ jest.mock('@/stores/dragDropStore', () => ({
     getState: jest.fn(() => ({
       groupByColumns: [],
       filterColumns: [],
+      measureColumns: [],
       filterValues: {}
     }))
   }
@@ -83,6 +84,7 @@ describe('QueryBuilderService', () => {
       useDragDropStore.getState.mockReturnValue({
         groupByColumns: [{ name: 'name', type: 'VARCHAR', nullable: true }],
         filterColumns: [],
+        measureColumns: [],
         filterValues: {}
       });
     });
@@ -104,12 +106,33 @@ describe('QueryBuilderService', () => {
     });
   });
 
+  describe('generateQuery with grouping and measures', () => {
+    beforeEach(() => {
+      const { useDragDropStore } = require('@/stores/dragDropStore');
+      useDragDropStore.getState.mockReturnValue({
+        groupByColumns: [{ name: 'department', type: 'VARCHAR', nullable: true }],
+        filterColumns: [],
+        measureColumns: [{ name: 'salary', type: 'DECIMAL', nullable: true, aggregation: 'SUM' }],
+        filterValues: {}
+      });
+    });
+
+    it('4.3 should generate correct SQL for Measures with default SUM aggregation', () => {
+      const result = QueryBuilderService.generateQuery('employees', mockColumns);
+
+      // Verify that SUM(salary) as ... is generated
+      expect(result.sql).toContain('SUM("salary") as "salary_sum"');
+      expect(result.sql).toContain('GROUP BY "department"');
+    });
+  });
+
   describe('generateQuery with filters', () => {
     beforeEach(() => {
       const { useDragDropStore } = require('@/stores/dragDropStore');
       useDragDropStore.getState.mockReturnValue({
         groupByColumns: [],
         filterColumns: [{ name: 'name', type: 'VARCHAR', nullable: true }],
+        measureColumns: [],
         filterValues: {
           name: ['Alice', 'Bob']
         }
@@ -130,6 +153,7 @@ describe('QueryBuilderService', () => {
       useDragDropStore.getState.mockReturnValue({
         groupByColumns: [],
         filterColumns: [{ name: 'name', type: 'VARCHAR', nullable: true }],
+        measureColumns: [],
         filterValues: {
           name: ["O'Brien"]
         }
@@ -145,6 +169,7 @@ describe('QueryBuilderService', () => {
       useDragDropStore.getState.mockReturnValue({
         groupByColumns: [],
         filterColumns: [{ name: 'name', type: 'VARCHAR', nullable: true }],
+        measureColumns: [],
         filterValues: {
           name: ['']
         }
@@ -173,6 +198,7 @@ describe('QueryBuilderService', () => {
           { name: 'col4', type: 'VARCHAR', nullable: true }
         ],
         filterColumns: [],
+        measureColumns: [],
         filterValues: {}
       });
 

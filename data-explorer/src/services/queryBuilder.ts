@@ -13,6 +13,7 @@ export interface GeneratedQuery {
   parameters: {
     selectColumns: string[];
     groupByColumns: string[];
+    measureColumns?: string[];
     filterConditions: Array<{ column: string; values: string[] }>;
     orderByColumns?: string[];
     limit?: number;
@@ -36,13 +37,14 @@ export class QueryBuilderService {
     options?: QueryBuilderOptions
   ): GeneratedQuery {
     const opts = { ...this.defaultOptions, ...options };
-    const { groupByColumns, filterColumns, filterValues } = useDragDropStore.getState();
+    const { groupByColumns, filterColumns, measureColumns, filterValues } = useDragDropStore.getState();
 
     const result: GeneratedQuery = {
       sql: '',
       parameters: {
         selectColumns: [],
         groupByColumns: groupByColumns.map(col => col.name),
+        measureColumns: measureColumns.map(col => col.name),
         filterConditions: [],
         orderByColumns: groupByColumns.map(col => col.name),
         limit: opts.defaultLimit
@@ -67,7 +69,7 @@ export class QueryBuilderService {
     }
 
     // Build SELECT clause
-    const selectClause = this.buildSelectClause(groupByColumns, columns);
+    const selectClause = this.buildSelectClause(groupByColumns, measureColumns, columns);
     result.parameters.selectColumns = selectClause.columns;
     
     // Build WHERE clause from filters
@@ -114,11 +116,15 @@ export class QueryBuilderService {
     return result;
   }
 
-  private static buildSelectClause(groupByColumns: DatabaseColumn[], allColumns: DatabaseColumn[]): {
+  private static buildSelectClause(
+    groupByColumns: DatabaseColumn[], 
+    measureColumns: DatabaseColumn[], 
+    allColumns: DatabaseColumn[]
+  ): {
     sql: string;
     columns: string[];
   } {
-    if (groupByColumns.length === 0) {
+    if (groupByColumns.length === 0 && measureColumns.length === 0) {
       // No grouping - select all columns
       return {
         sql: '*',
@@ -136,36 +142,44 @@ export class QueryBuilderService {
       selectColumns.push(column.name);
     });
 
-    // Add aggregate functions for numeric columns
-    const numericColumns = allColumns.filter(col => {
-      const upperType = col.type.toUpperCase();
-      return upperType.includes('INT') || 
-             upperType.includes('DECIMAL') || 
-             upperType.includes('NUMERIC') ||
-             upperType.includes('FLOAT') || 
-             upperType.includes('DOUBLE') || 
-             upperType.includes('REAL');
-    });
+    if (measureColumns && measureColumns.length > 0) {
+      measureColumns.forEach(column => {
+        // cast because we don't import MeasureColumn here to avoid circular dep if any, or just accept `any` for aggregation
+        const agg = (column as any).aggregation || 'SUM';
+        selectParts.push(`${agg}("${column.name}") as "${column.name}_${agg.toLowerCase()}"`);
+        selectColumns.push(`${column.name}_${agg.toLowerCase()}`);
+      });
+    } else {
+      // Create aggregations for numeric columns implicitly for backward compatibility
+      const numericColumns = allColumns.filter(col => {
+        const upperType = col.type.toUpperCase();
+        return upperType.includes('INT') || 
+               upperType.includes('DECIMAL') || 
+               upperType.includes('NUMERIC') ||
+               upperType.includes('FLOAT') || 
+               upperType.includes('DOUBLE') || 
+               upperType.includes('REAL');
+      });
 
-    numericColumns.forEach(column => {
-      // Skip if already in group by
-      if (!groupByColumns.some(groupCol => groupCol.name === column.name)) {
-        selectParts.push(`COUNT("${column.name}") as count_${column.name}`);
-        selectColumns.push(`count_${column.name}`);
-        
-        selectParts.push(`SUM("${column.name}") as sum_${column.name}`);
-        selectColumns.push(`sum_${column.name}`);
-        
-        selectParts.push(`AVG("${column.name}") as avg_${column.name}`);
-        selectColumns.push(`avg_${column.name}`);
-        
-        selectParts.push(`MIN("${column.name}") as min_${column.name}`);
-        selectColumns.push(`min_${column.name}`);
-        
-        selectParts.push(`MAX("${column.name}") as max_${column.name}`);
-        selectColumns.push(`max_${column.name}`);
-      }
-    });
+      numericColumns.forEach(column => {
+        if (!groupByColumns.some(groupCol => groupCol.name === column.name)) {
+          selectParts.push(`COUNT("${column.name}") as count_${column.name}`);
+          selectColumns.push(`count_${column.name}`);
+          
+          selectParts.push(`SUM("${column.name}") as sum_${column.name}`);
+          selectColumns.push(`sum_${column.name}`);
+          
+          selectParts.push(`AVG("${column.name}") as avg_${column.name}`);
+          selectColumns.push(`avg_${column.name}`);
+          
+          selectParts.push(`MIN("${column.name}") as min_${column.name}`);
+          selectColumns.push(`min_${column.name}`);
+          
+          selectParts.push(`MAX("${column.name}") as max_${column.name}`);
+          selectColumns.push(`max_${column.name}`);
+        }
+      });
+    }
 
     return {
       sql: selectParts.join(', '),

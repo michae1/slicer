@@ -17,6 +17,7 @@ import { FileUpload } from './components/FileUpload';
 import { Sidebar } from './components/layout/Sidebar';
 import { GroupByZone } from './components/GroupByZone';
 import { FiltersZone } from './components/FiltersZone';
+import { MeasuresZone } from './components/MeasuresZone';
 import { ResultsTable } from './components/ResultsTable';
 import { ProgressIndicator, useProgressState } from './components/ProgressIndicator';
 import { useFileValidation } from './hooks/useFileValidation';
@@ -41,9 +42,12 @@ function App() {
     setDraggedItem,
     addToGroupBy,
     addToFilters,
+    addToMeasures,
     moveGroupByColumn,
+    moveMeasureColumn,
     groupByColumns,
     filterColumns,
+    measureColumns,
     filterValues,
     draggedItem,
     clearAll
@@ -87,6 +91,7 @@ function App() {
 
       const overGroupByItemIndex = groupByColumns.findIndex(col => col.name === overId);
       const overFilterItemIndex = filterColumns.findIndex(col => col.name === overId);
+      const overMeasureItemIndex = measureColumns.findIndex(col => col.name === overId);
 
       if (overId === 'group-by-zone') {
         addToGroupBy(column); // Add to end of group by zone
@@ -96,6 +101,8 @@ function App() {
       } else if (overId === 'filters-zone' || overFilterItemIndex !== -1) {
         addToFilters(column, overFilterItemIndex !== -1 ? overFilterItemIndex : undefined);
         refreshAvailableValues(column.name);
+      } else if (overId === 'measures-zone' || overMeasureItemIndex !== -1) {
+        addToMeasures(column, overMeasureItemIndex !== -1 ? overMeasureItemIndex : undefined);
       }
       return;
     }
@@ -109,6 +116,19 @@ function App() {
         moveGroupByColumn(activeIndex, overIndex);
       } else if (overId === 'group-by-zone') {
         moveGroupByColumn(activeIndex, groupByColumns.length - 1);
+      }
+      return;
+    }
+
+    // Handle sorting within Measures zone
+    const activeMeasureIndex = measureColumns.findIndex(col => col.name === activeId);
+    if (activeMeasureIndex !== -1) {
+      const overIndex = measureColumns.findIndex(col => col.name === overId);
+
+      if (overIndex !== -1 && activeMeasureIndex !== overIndex) {
+        moveMeasureColumn(activeMeasureIndex, overIndex);
+      } else if (overId === 'measures-zone') {
+        moveMeasureColumn(activeMeasureIndex, measureColumns.length - 1);
       }
     }
   };
@@ -206,18 +226,36 @@ function App() {
 
       const wherePart = whereClauses.length > 0 ? `WHERE ${whereClauses.join(' AND ')}` : '';
 
-      if (groupByColumns.length > 0) {
+      const hasGroupBy = groupByColumns.length > 0;
+      const hasMeasures = measureColumns.length > 0;
+
+      if (hasGroupBy || hasMeasures) {
         // Aggregated view
-        const groupCols = groupByColumns.map(col => `"${col.name}"`).join(', ');
+        const groupCols = groupByColumns.map(col => `"${col.name}"`);
+        const measureCols = measureColumns.map(col => {
+          const agg = col.aggregation || 'SUM';
+          return `${agg}("${col.name}") as "${col.name} (${agg})"`;
+        });
+        
+        const selectParts = [...groupCols];
+        if (measureCols.length > 0) {
+          selectParts.push(...measureCols);
+        } else {
+          selectParts.push('COUNT(*) as "Count"');
+        }
+
+        const groupClause = hasGroupBy ? `GROUP BY ${groupCols.join(', ')}` : '';
+        const orderClause = hasGroupBy 
+          ? `ORDER BY "${groupByColumns[0].name}" ASC` 
+          : (hasMeasures ? `ORDER BY "${measureColumns[0].name} (${measureColumns[0].aggregation || 'SUM'})" DESC` : '');
+
         query = `
           SELECT 
-            ${groupCols},
-            COUNT(*) as "Count",
-            COUNT(DISTINCT "${columns[0]?.name || '*'}") as "Unique_Values"
+            ${selectParts.join(',\n            ')}
           FROM ${currentTable}
           ${wherePart}
-          GROUP BY ${groupCols}
-          ORDER BY "Count" DESC
+          ${groupClause}
+          ${orderClause}
           LIMIT 100
         `;
       } else {
@@ -235,7 +273,7 @@ function App() {
     } catch (err) {
       console.error('Analysis query failed:', err);
     }
-  }, [currentTable, isDataLoaded, groupByColumns, filterValues, columns]);
+  }, [currentTable, isDataLoaded, groupByColumns, measureColumns, filterValues, columns]);
 
   // Re-run analysis when query state changes
   useEffect(() => {
@@ -355,12 +393,13 @@ function App() {
               {/* Content Area */}
               <div className="flex-1 flex flex-col overflow-hidden p-6 space-y-6">
                 {/* Query Builder Zones */}
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
                   <GroupByZone />
                   <FiltersZone
                     availableValues={availableValues}
                     isLoadingValues={isLoadingValues}
                   />
+                  <MeasuresZone />
                 </div>
 
                 {/* Results */}
