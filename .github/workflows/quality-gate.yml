@@ -8,6 +8,9 @@ on:
 jobs:
   quality-check:
     runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ./data-explorer
 
     steps:
       - name: Checkout code
@@ -16,8 +19,9 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: "20"
+          node-version: "22"
           cache: "npm"
+          cache-dependency-path: ./data-explorer/package-lock.json
 
       - name: Install dependencies
         run: npm ci
@@ -32,6 +36,6 @@ jobs:
         uses: codecov/codecov-action@v4
         if: always()
         with:
-          files: ./coverage/lcov.info
+          files: ./data-explorer/coverage/lcov.info
           flags: unittests
           fail_ci_if_error: false
