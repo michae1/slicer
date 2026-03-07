@@ -7,25 +7,25 @@ const __dirname = dirname(__filename);
 const projectRoot = resolve(__dirname, '..');
 
 test('smoke test - page loads and shows upload UI', async () => {
-  const browser = await chromium.launch({ 
+  const browser = await chromium.launch({
     executablePath: '/Users/michaelplakhov/Library/Caches/ms-playwright/chromium-1028/chrome-mac/Chromium.app/Contents/MacOS/Chromium'
   });
   const page = await browser.newPage();
-  
-  await page.goto('http://localhost:5175');
-  
+
+  await page.goto('http://localhost:5173');
+
   // Check main heading is visible
   await expect(page.getByRole('heading', { name: 'Data Explorer' })).toBeVisible();
-  
+
   // Check feature cards - use exact match
   await expect(page.getByText('Fast', { exact: true })).toBeVisible();
   await expect(page.getByText('Secure', { exact: true })).toBeVisible();
   await expect(page.getByText('Powerful', { exact: true })).toBeVisible();
-  
+
   // Check upload area
   await expect(page.getByText('Drop your file here')).toBeVisible();
   await expect(page.getByText('CSV', { exact: true })).toBeVisible();
-  
+
   // Test file upload
   const filePath = resolve(projectRoot, 'public/test-data.csv');
   await page.setInputFiles('input[type="file"]', filePath);
@@ -36,7 +36,7 @@ test('smoke test - page loads and shows upload UI', async () => {
   // Verify we moved to the main application interface
   await expect(page.getByText('Table:')).toBeVisible({ timeout: 10000 });
   await expect(page.getByRole('heading', { name: 'Results' })).toBeVisible({ timeout: 10000 });
-  
+
   console.log('Smoke test with file upload passed!');
   await browser.close();
 });

@@ -2,6 +2,7 @@ import { useState } from 'react';
 import {
   DndContext,
   DragEndEvent,
+  DragOverlay,
   DragStartEvent,
   PointerSensor,
   useSensor,
@@ -18,6 +19,7 @@ import { FileProcessor } from './services/fileProcessing';
 import { DatabaseManager } from './utils/database';
 import { MemoryManager } from './utils/memory';
 import { useDragDropStore } from './stores/dragDropStore';
+import { ColumnChip } from './components/ColumnChip';
 import type { DatabaseColumn, QueryResult } from './utils/database';
 
 function App() {
@@ -28,8 +30,8 @@ function App() {
 
   const { progress, stage, isProcessing, error, startProcessing, updateProgress, completeProcessing, reset } = useProgressState();
   const { validateFile } = useFileValidation();
-  const { setDraggedItem } = useDragDropStore();
-  
+  const { setDraggedItem, addToGroupBy, addToFilters, moveGroupByColumn, groupByColumns, filterColumns, draggedItem } = useDragDropStore();
+
   const dbManager = DatabaseManager.getInstance();
   const memoryManager = MemoryManager.getInstance();
 
@@ -50,14 +52,44 @@ function App() {
 
   const handleDragEnd = (event: DragEndEvent) => {
     const { active, over } = event;
-    
+
+    // Reset dragged item state when drag ends
+    setDraggedItem(null);
+
     if (!over) {
-      setDraggedItem(null);
       return;
     }
 
-    // Reset dragged item when drag ends
-    setDraggedItem(null);
+    const activeId = active.id as string;
+    const overId = over.id as string;
+
+    // Handle drops from sidebar to zones
+    if (activeId.startsWith('column-')) {
+      const column = active.data.current?.column;
+      if (!column) return;
+
+      const dropOnGroupBy = overId === 'group-by-zone' || groupByColumns.some(col => col.name === overId);
+      const dropOnFilters = overId === 'filters-zone' || filterColumns.some(col => col.name === overId);
+
+      if (dropOnGroupBy) {
+        addToGroupBy(column);
+      } else if (dropOnFilters) {
+        addToFilters(column);
+      }
+      return;
+    }
+
+    // Handle sorting within Group By zone
+    const activeIndex = groupByColumns.findIndex(col => col.name === activeId);
+    if (activeIndex !== -1) {
+      const overIndex = groupByColumns.findIndex(col => col.name === overId);
+
+      if (overIndex !== -1 && activeIndex !== overIndex) {
+        moveGroupByColumn(activeIndex, overIndex);
+      } else if (overId === 'group-by-zone') {
+        moveGroupByColumn(activeIndex, groupByColumns.length - 1);
+      }
+    }
   };
 
   const handleFileSelect = async (file: File) => {
@@ -136,7 +168,7 @@ function App() {
                 Transform your data into insights. Upload CSV, Parquet, or GeoJSON files and explore with powerful queries — all in your browser.
               </p>
             </div>
-            
+
             <div className="flex justify-center gap-8 mb-12">
               {[
                 { icon: 'M13 10V3L4 14h7v7l9-11h-7z', label: 'Fast', desc: 'In-browser processing' },
@@ -154,7 +186,7 @@ function App() {
                 </div>
               ))}
             </div>
-            
+
             {isProcessing || error ? (
               <ProgressIndicator
                 isProcessing={isProcessing}
@@ -168,7 +200,7 @@ function App() {
                 disabled={isProcessing}
               />
             )}
-            
+
             <p className="text-center text-purple-400 text-sm mt-8">
               Powered by DuckDB WASM • No server required
             </p>
@@ -188,7 +220,7 @@ function App() {
               onColumnSelect={handleColumnSelect}
               className="flex-shrink-0"
             />
-            
+
             {/* Main Content */}
             <div className="flex-1 flex flex-col overflow-hidden">
               {/* Header */}
@@ -228,8 +260,8 @@ function App() {
                 {/* Results */}
                 <div className="flex-1">
                   {queryResult ? (
-                    <ResultsTable 
-                      result={queryResult} 
+                    <ResultsTable
+                      result={queryResult}
                       className="h-full"
                       sortable={true}
                       selectable={true}
@@ -248,6 +280,17 @@ function App() {
               </div>
             </div>
           </div>
+          <DragOverlay dropAnimation={null}>
+            {draggedItem ? (
+              <div className="z-[9999] pointer-events-none shadow-2xl">
+                <ColumnChip
+                  column={draggedItem}
+                  className="bg-white/95 scale-105 ring-2 ring-blue-500/50 shadow-xl"
+                  showHandle={true}
+                />
+              </div>
+            ) : null}
+          </DragOverlay>
         </DndContext>
       )}
     </div>

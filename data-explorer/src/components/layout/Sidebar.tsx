@@ -4,6 +4,8 @@ import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import type { DatabaseColumn } from '@/utils/database';
 
+import { ColumnChip } from '@/components/ColumnChip';
+
 interface SidebarProps {
   columns: DatabaseColumn[];
   onColumnSelect?: (column: DatabaseColumn) => void;
@@ -27,57 +29,19 @@ function DraggableColumn({ column, activeSection, onColumnSelect }: DraggableCol
     },
   });
 
-  const style = transform ? {
-    transform: `translate3d(${transform.x}px, ${transform.y}px, 0)`,
-  } : undefined;
-
   return (
     <div
       ref={setNodeRef}
-      style={style}
       {...attributes}
       {...listeners}
       onClick={() => onColumnSelect?.(column)}
-      className={cn(
-        'p-3 bg-white rounded-lg border border-gray-200 cursor-pointer transition-all',
-        'hover:border-blue-300 hover:shadow-sm',
-        'active:scale-95',
-        activeSection === 'dimensions' ? 'hover:border-green-300' : 'hover:border-purple-300',
-        isDragging && 'opacity-50 shadow-lg'
-      )}
+      className="w-full cursor-pointer touch-none"
     >
-      <div className="flex items-center justify-between">
-        <div className="flex-1">
-          <div className="flex items-center space-x-2">
-            <svg
-              className={cn(
-                'w-4 h-4 transition-colors',
-                activeSection === 'dimensions' ? 'text-green-500' : 'text-purple-500'
-              )}
-              fill="currentColor"
-              viewBox="0 0 20 20"
-            >
-              {activeSection === 'dimensions' ? (
-                <path d="M7 2a2 2 0 00-2 2v1h2V4a2 2 0 012-2h2a2 2 0 012 2v1h2V4a2 2 0 012-2h2a2 2 0 012 2v1a2 2 0 01-2 2h-2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6h-2a2 2 0 01-2-2V4z" />
-              ) : (
-                <path d="M8.433 7.418c.155-.103.346-.196.567-.267v1.698a2.305 2.305 0 01-.567-.267C8.07 8.34 8 8.114 8 8c0-.114.07-.34.433-.582zM11 12.849v-1.698c.22.071.412.164.567.267.364.243.433.468.433.582 0 .114-.07.34-.433.582a2.305 2.305 0 01-.567.267z" />
-              )}
-            </svg>
-            <h4 className="text-sm font-medium text-gray-900">{column.name}</h4>
-          </div>
-          <p className="text-xs text-gray-500 mt-1">{column.type}</p>
-          {column.nullable && (
-            <span className="inline-block mt-1 px-1.5 py-0.5 bg-red-100 text-red-600 text-xs rounded">
-              Nullable
-            </span>
-          )}
-        </div>
-        <div className="flex items-center space-x-1">
-          <svg className="w-4 h-4 text-gray-400" fill="currentColor" viewBox="0 0 20 20">
-            <path d="M10 6L6 10L10 14" stroke="currentColor" strokeWidth="2" fill="none" strokeLinecap="round" strokeLinejoin="round"/>
-          </svg>
-        </div>
-      </div>
+      <ColumnChip
+        column={column}
+        isDragging={isDragging}
+        className="w-full"
+      />
     </div>
   );
 }
@@ -95,11 +59,11 @@ export function Sidebar({
   const getDataTypeCategory = (type: string): 'dimensions' | 'metrics' => {
     const upperType = type.toUpperCase();
     if (
-      upperType.includes('INT') || 
-      upperType.includes('DECIMAL') || 
+      upperType.includes('INT') ||
+      upperType.includes('DECIMAL') ||
       upperType.includes('NUMERIC') ||
-      upperType.includes('FLOAT') || 
-      upperType.includes('DOUBLE') || 
+      upperType.includes('FLOAT') ||
+      upperType.includes('DOUBLE') ||
       upperType.includes('REAL')
     ) {
       return 'metrics';

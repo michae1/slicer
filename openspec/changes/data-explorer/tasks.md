@@ -33,9 +33,9 @@
 - [ ] 4.1 Build left sidebar layout with collapsible panels
 - [ ] 4.2 Create Dimensions panel with string/enum field display and search
 - [ ] 4.3 Create Metrics panel with numeric field display and statistics
-- [ ] 4.4 Implement drag-and-drop functionality for dimensions using @dnd-kit
-- [ ] 4.5 Build Group By zone with droppable area and dimension chips
-- [ ] 4.6 Create Filters zone with dimension sections and multi-select checkboxes
+- [x] 4.4 Implement drag-and-drop functionality for dimensions using @dnd-kit
+- [x] 4.5 Build Group By zone with droppable area and dimension chips
+- [x] 4.6 Create Filters zone with dimension sections and multi-select checkboxes
 - [ ] 4.7 Implement responsive layout adaptation for mobile devices
 - [ ] 4.8 Add search functionality for filtering dimensions and metrics
 
@@ -98,7 +98,7 @@
 - [ ] 10.3 Create integration tests for user interaction flows
 - [ ] 10.4 Add E2E tests with Playwright for critical user paths
 - [ ] 10.5 Test file upload scenarios with various formats and sizes
-- [ ] 10.6 Validate drag-and-drop functionality across browsers
+- [x] 10.6 Validate drag-and-drop functionality across browsers
 - [ ] 10.7 Test query building and SQL generation edge cases
 - [ ] 10.8 Performance testing with large datasets
 

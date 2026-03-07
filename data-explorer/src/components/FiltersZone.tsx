@@ -1,13 +1,10 @@
 import React, { useState } from 'react';
-import {
-  DragEndEvent,
-  DragOverlay,
-  DragStartEvent,
-} from '@dnd-kit/core';
+import { useDroppable } from '@dnd-kit/core';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { useDragDropStore } from '@/stores/dragDropStore';
 import type { DatabaseColumn } from '@/utils/database';
+import { ColumnChip, getColumnTypeColor } from '@/components/ColumnChip';
 
 interface FiltersZoneProps {
   className?: string;
@@ -24,13 +21,13 @@ interface FilterSectionProps {
   isLoading?: boolean;
 }
 
-function FilterSection({ 
-  column, 
-  selectedValues, 
-  availableValues, 
-  onValuesChange, 
-  onRemove, 
-  isLoading = false 
+function FilterSection({
+  column,
+  selectedValues,
+  availableValues,
+  onValuesChange,
+  onRemove,
+  isLoading = false
 }: FilterSectionProps) {
   const [isExpanded, setIsExpanded] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
@@ -54,22 +51,18 @@ function FilterSection({
     }
   };
 
-  const getTypeColor = (type: string): string => {
-    return 'bg-green-100 text-green-800 border-green-200';
-  };
-
   return (
-    <div className="border border-gray-200 rounded-lg overflow-hidden">
+    <div className="border border-gray-200 rounded-lg overflow-hidden shrink-0">
       {/* Filter Header */}
-      <div className={cn('p-3', getTypeColor(column.type))}>
-        <div className="flex items-center justify-between">
-          <div className="flex items-center space-x-2 flex-1">
+      <div className={cn('p-2', getColumnTypeColor(column.type))}>
+        <div className="flex items-center justify-between gap-2">
+          <div className="flex items-center gap-2 flex-1 min-w-0">
             <button
               onClick={() => setIsExpanded(!isExpanded)}
-              className="p-1 hover:bg-white/20 rounded transition-colors"
+              className="p-1 hover:bg-black/10 rounded transition-colors"
             >
               <svg
-                className={cn('w-4 h-4 transition-transform', isExpanded ? 'rotate-90' : '')}
+                className={cn('w-3.5 h-3.5 transition-transform', isExpanded ? 'rotate-90' : '')}
                 fill="none"
                 stroke="currentColor"
                 viewBox="0 0 24 24"
@@ -77,21 +70,21 @@ function FilterSection({
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
               </svg>
             </button>
-            <div className="flex-1">
-              <h4 className="text-sm font-medium">{column.name}</h4>
-              <p className="text-xs opacity-75">{column.type}</p>
+            <div className="flex-1 min-w-0">
+              <h4 className="text-sm font-medium truncate">{column.name}</h4>
+              <p className="text-[10px] opacity-70">({column.type})</p>
             </div>
           </div>
-          
-          <div className="flex items-center space-x-2">
-            <span className="text-xs opacity-75">
-              {selectedValues.length} of {availableValues.length}
+
+          <div className="flex items-center gap-2">
+            <span className="text-[10px] opacity-70 whitespace-nowrap">
+              {selectedValues.length}/{availableValues.length}
             </span>
             <button
               onClick={() => onRemove(column.name)}
-              className="p-1 hover:bg-white/20 rounded transition-colors"
+              className="p-1 hover:bg-black/10 rounded transition-colors"
             >
-              <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+              <svg className="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 20 20">
                 <path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd" />
               </svg>
             </button>
@@ -121,7 +114,7 @@ function FilterSection({
                 className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               />
             </div>
-            
+
             <div className="flex items-center justify-between">
               <Button
                 variant="ghost"
@@ -185,36 +178,21 @@ function FilterSection({
   );
 }
 
-export function FiltersZone({ 
-  className, 
-  availableValues = {}, 
-  isLoadingValues = false 
+export function FiltersZone({
+  className,
+  availableValues = {},
+  isLoadingValues = false
 }: FiltersZoneProps) {
   const {
     filterColumns,
     filterValues,
-    addToFilters,
     removeFromFilters,
     setFilterValues,
-    draggedItem,
   } = useDragDropStore();
 
-  const handleDragStart = (event: DragStartEvent) => {
-    // Drag start is handled at App level
-  };
-
-  const handleDragEnd = (event: DragEndEvent) => {
-    const { over } = event;
-
-    if (!over) {
-      return;
-    }
-
-    // Handle drop to filters zone
-    if (over.id === 'filters-zone' && draggedItem) {
-      addToFilters(draggedItem);
-    }
-  };
+  const { setNodeRef, isOver } = useDroppable({
+    id: 'filters-zone',
+  });
 
   const handleFilterValuesChange = (columnName: string, values: string[]) => {
     setFilterValues(columnName, values);
@@ -236,7 +214,7 @@ export function FiltersZone({
           <h3 className="text-sm font-semibold text-gray-900">Filters</h3>
           <span className="text-xs text-gray-500">({filterColumns.length})</span>
         </div>
-        
+
         {filterColumns.length > 0 && (
           <Button
             variant="ghost"
@@ -250,11 +228,13 @@ export function FiltersZone({
       </div>
 
       <div
+        ref={setNodeRef}
         id="filters-zone"
         className={cn(
           'min-h-[60px] p-3 border-2 border-dashed border-gray-300 rounded-lg transition-colors',
           'hover:border-green-400 hover:bg-green-50/50',
-          filterColumns.length > 0 && 'border-solid border-gray-200 bg-gray-50'
+          filterColumns.length > 0 && 'border-solid border-gray-200 bg-gray-50',
+          isOver && 'border-green-500 bg-green-50'
         )}
       >
         {filterColumns.length === 0 ? (
@@ -279,18 +259,6 @@ export function FiltersZone({
           </div>
         )}
       </div>
-
-      <DragOverlay>
-        {draggedItem ? (
-          <div className={cn(
-            'inline-flex items-center gap-2 px-3 py-1.5 rounded-lg border bg-white shadow-lg',
-            'opacity-90'
-          )}>
-            <span className="text-sm font-medium">{draggedItem.name}</span>
-            <span className="text-xs text-gray-500">({draggedItem.type})</span>
-          </div>
-        ) : null}
-      </DragOverlay>
     </div>
   );
 }
