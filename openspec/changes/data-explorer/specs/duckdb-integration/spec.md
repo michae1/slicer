@@ -19,23 +19,31 @@ The system SHALL initialize DuckDB WebAssembly engine and create database connec
 ### Requirement: Table creation from uploaded files
 The system SHALL create DuckDB tables from uploaded files using appropriate SQL COPY commands for each format.
 
-#### Scenario: CSV table creation
+#### Scenario: CSV table creation (ACTUAL IMPLEMENTATION)
 - **WHEN** user uploads CSV file
+- **THEN** system manually parses CSV content with proper quoted value handling
+- **THEN** system infers column types by sampling data (INTEGER, DOUBLE, VARCHAR, DATE)
 - **THEN** system executes `CREATE TABLE` with inferred column types
-- **THEN** system uses `COPY FROM` to load data into table
+- **THEN** system uses batch `INSERT` statements to load data into table
 - **THEN** system provides table name based on filename (e.g., "sales_data" for "sales_data.csv")
 
-#### Scenario: Parquet table creation
-- **WHEN** user uploads Parquet file
-- **THEN** system creates table with Parquet schema metadata
-- **THEN** system uses `CREATE TABLE AS SELECT * FROM read_parquet()` to load data
-- **THEN** system preserves original column types and nullability
+**Technical Note**: Due to DuckDB WASM limitations with blob URLs, implemented manual CSV parsing pipeline instead of `COPY FROM` commands.
 
-#### Scenario: GeoJSON table creation
+#### Scenario: Parquet table creation (NOT IMPLEMENTED)
+- **WHEN** user uploads Parquet file
+- **THEN** system will create table with Parquet schema metadata
+- **THEN** system will use `CREATE TABLE AS SELECT * FROM read_parquet()` to load data
+- **THEN** system will preserve original column types and nullability
+
+**Status**: TODO - Requires DuckDB WASM virtual file system implementation
+
+#### Scenario: GeoJSON table creation (NOT IMPLEMENTED)
 - **WHEN** user uploads GeoJSON file
-- **THEN** system creates table with geometry and properties columns
-- **THEN** system uses `CREATE TABLE AS SELECT * FROM read_geojson()` to load spatial data
-- **THEN** system enables spatial queries and functions
+- **THEN** system will create table with geometry and properties columns
+- **THEN** system will use `CREATE TABLE AS SELECT * FROM read_geojson()` to load spatial data
+- **THEN** system will enable spatial queries and functions
+
+**Status**: TODO - Requires DuckDB WASM virtual file system implementation
 
 ### Requirement: Query execution and result handling
 The system SHALL execute SQL queries against DuckDB tables and return results in formats suitable for UI display.

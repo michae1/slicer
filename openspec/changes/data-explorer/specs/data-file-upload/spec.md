@@ -24,11 +24,18 @@ The system SHALL provide a drag-and-drop zone that allows users to upload CSV, P
 ### Requirement: Automatic format detection and schema inference
 The system SHALL automatically detect file format and infer column schema including data types and null handling.
 
-#### Scenario: CSV format detection
+#### Scenario: CSV format detection (ACTUAL IMPLEMENTATION)
 - **WHEN** user uploads a file with .csv extension
-- **THEN** system detects format as CSV and parses with comma delimiter
-- **THEN** system infers column types (string, integer, float, boolean, date) based on sample data
+- **THEN** system detects format as CSV and parses with manual CSV parser
+- **THEN** system handles quoted values, escaped quotes, and embedded newlines correctly
+- **THEN** system infers column types (INTEGER, DOUBLE, VARCHAR, DATE) based on sample data
 - **THEN** system shows detected schema in preview format
+
+**Technical Implementation**:
+- Manual CSV parsing instead of DuckDB blob URL reading
+- Robust quoted value handling with escape sequence support
+- Type inference from sample of first 10 non-empty values
+- Fallback to VARCHAR for mixed or unrecognized types
 
 #### Scenario: Parquet format detection
 - **WHEN** user uploads a file with .parquet extension
