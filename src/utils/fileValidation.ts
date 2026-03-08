@@ -7,6 +7,8 @@ export interface FileValidationError {
   suggestion?: string;
 }
 
+import { FileProcessor } from '../services/fileProcessing';
+
 export interface ValidationReport {
   isValid: boolean;
   errors: FileValidationError[];
@@ -27,9 +29,10 @@ export class DataValidator {
     
     try {
       const content = await this.readFileAsText(file);
-      const lines = content.split('\n').filter(line => line.trim());
+      const parsed = FileProcessor.parseCSVContent(content);
+      const rows = parsed;
       
-      if (lines.length === 0) {
+      if (rows.length === 0) {
         errors.push({
           type: 'structure',
           message: 'CSV file is empty',
@@ -39,7 +42,7 @@ export class DataValidator {
       }
 
       // Check for headers
-      if (lines.length < 2) {
+      if (rows.length < 2) {
         warnings.push({
           type: 'structure',
           message: 'CSV file has no data rows',
@@ -47,15 +50,15 @@ export class DataValidator {
         });
       }
 
-      const headers = this.parseCSVLine(lines[0]);
+      const headers = rows[0];
       const expectedColumns = headers.length;
       
       // Validate data rows
       let emptyRows = 0;
       let maxColumns = 0;
       
-      for (let i = 1; i < lines.length; i++) {
-        const row = this.parseCSVLine(lines[i]);
+      for (let i = 1; i < rows.length; i++) {
+        const row = rows[i];
         maxColumns = Math.max(maxColumns, row.length);
         
         if (row.every(cell => !cell.trim())) {
@@ -92,7 +95,7 @@ export class DataValidator {
         errors.length === 0,
         errors,
         warnings,
-        lines.length - 1,
+        rows.length - 1,
         expectedColumns,
         emptyRows
       );
@@ -205,27 +208,7 @@ export class DataValidator {
     }
   }
 
-  private static parseCSVLine(line: string): string[] {
-    const result = [];
-    let current = '';
-    let inQuotes = false;
-    
-    for (let i = 0; i < line.length; i++) {
-      const char = line[i];
-      
-      if (char === '"') {
-        inQuotes = !inQuotes;
-      } else if (char === ',' && !inQuotes) {
-        result.push(current.trim());
-        current = '';
-      } else {
-        current += char;
-      }
-    }
-    
-    result.push(current.trim());
-    return result;
-  }
+  // parseCSVLine was removed as we use FileProcessor.parseCSVContent
 
   private static async readFileAsText(file: File): Promise<string> {
     return new Promise((resolve, reject) => {

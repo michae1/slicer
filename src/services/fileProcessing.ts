@@ -6,6 +6,9 @@ export interface FileInfo {
   lastModified: number;
 }
 
+import * as duckdb from '@duckdb/duckdb-wasm';
+import { getDuckDB } from './duckdb';
+
 export interface FileProcessingResult {
   tableName: string;
   schema: {
@@ -97,23 +100,61 @@ export class FileProcessor {
 
   private static async parseCSV(file: File): Promise<{ headers: string[], rows: string[][] }> {
     const content = await this.readFileAsText(file);
-    const lines = content.trim().split('\n');
+    const parsed = this.parseCSVContent(content);
 
-    if (lines.length < 2) {
+    if (parsed.length < 2) {
       throw new Error('CSV file must have at least a header row and one data row');
     }
 
-    const headers = this.parseCSVLine(lines[0]);
-    const rows: string[][] = [];
+    const headers = parsed[0];
+    const rows = parsed.slice(1);
 
-    for (let i = 1; i < lines.length; i++) {
-      const values = this.parseCSVLine(lines[i]);
-      if (values.length > 0) { // Skip empty lines
-        rows.push(values);
+    return { headers, rows };
+  }
+
+  static parseCSVContent(content: string): string[][] {
+    const result: string[][] = [];
+    let currentRow: string[] = [];
+    let currentCell = '';
+    let inQuotes = false;
+    
+    for (let i = 0; i < content.length; i++) {
+      const char = content[i];
+      const nextChar = content[i + 1];
+
+      if (char === '"') {
+        if (inQuotes && nextChar === '"') {
+          // Escaped quote
+          currentCell += '"';
+          i++; // Skip next quote
+        } else {
+          inQuotes = !inQuotes;
+        }
+      } else if (char === ',' && !inQuotes) {
+        currentRow.push(currentCell.trim());
+        currentCell = '';
+      } else if ((char === '\n' || char === '\r') && !inQuotes) {
+        if (char === '\r' && nextChar === '\n') {
+          i++; // Skip \n in \r\n
+        }
+        if (currentCell !== '' || currentRow.length > 0) {
+          currentRow.push(currentCell.trim());
+          result.push(currentRow);
+          currentRow = [];
+          currentCell = '';
+        }
+      } else {
+        currentCell += char;
       }
     }
 
-    return { headers, rows };
+    // Add final trailing cell/row
+    if (currentCell !== '' || currentRow.length > 0) {
+      currentRow.push(currentCell.trim());
+      result.push(currentRow);
+    }
+
+    return result;
   }
 
   private static inferColumnType(values: string[]): string {
@@ -162,27 +203,7 @@ export class FileProcessor {
     `;
   }
 
-  private static parseCSVLine(line: string): string[] {
-    const result = [];
-    let current = '';
-    let inQuotes = false;
-    
-    for (let i = 0; i < line.length; i++) {
-      const char = line[i];
-      
-      if (char === '"') {
-        inQuotes = !inQuotes;
-      } else if (char === ',' && !inQuotes) {
-        result.push(current.trim());
-        current = '';
-      } else {
-        current += char;
-      }
-    }
-    
-    result.push(current.trim());
-    return result;
-  }
+  // removed parseCSVLine
 
   private static async readFileAsText(file: File): Promise<string> {
     return new Promise((resolve, reject) => {
@@ -194,41 +215,20 @@ export class FileProcessor {
   }
 
   private static async createTableFromCSV(file: File, tableName: string, dbManager: any): Promise<void> {
-    const { headers, rows } = await this.parseCSV(file);
+    const db = await getDuckDB();
+    await db.registerFileHandle(file.name, file, duckdb.DuckDBDataProtocol.BROWSER_FILEREADER, true);
 
-    // Infer column types
-    const columns = headers.map((header, index) => {
-      const values = rows.map(row => row[index] || '').filter(v => v.trim());
-      const type = this.inferColumnType(values);
-      return { name: header.trim(), type };
-    });
-
-    // Create table with inferred schema
+    const safeFileName = file.name.replace(/'/g, "''");
     const createTableSQL = `
-      CREATE TABLE IF NOT EXISTS ${tableName} (
-        ${columns.map(col => `"${col.name}" ${col.type}`).join(', ')}
-      );
+      CREATE TABLE IF NOT EXISTS ${tableName} AS 
+      SELECT * FROM read_csv_auto('${safeFileName}', header=True, ignore_errors=True);
     `;
 
-    await dbManager.executeQuery(createTableSQL);
-
-    // Insert data using regular INSERT statements
-    if (rows.length > 0) {
-      for (const row of rows) {
-        const paddedRow = [...row];
-        while (paddedRow.length < columns.length) {
-          paddedRow.push('');
-        }
-        const values = paddedRow.map(value => {
-          const trimmed = value.trim();
-          if (trimmed === '') return 'NULL';
-          if (!isNaN(Number(trimmed)) && trimmed !== '') return trimmed;
-          return `'${trimmed.replace(/'/g, "''")}'`;
-        }).join(', ');
-
-        const insertSQL = `INSERT INTO ${tableName} VALUES (${values})`;
-        await dbManager.executeQuery(insertSQL);
-      }
+    try {
+      await dbManager.executeQuery(createTableSQL);
+    } finally {
+      // Clean up the virtual file after creating the table
+      await db.dropFile(file.name).catch(() => {});
     }
   }
 

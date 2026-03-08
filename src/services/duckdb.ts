@@ -38,6 +38,13 @@ export const initializeDuckDB = async (): Promise<duckdb.AsyncDuckDB> => {
   }
 };
 
+export const getDuckDB = async (): Promise<duckdb.AsyncDuckDB> => {
+  if (!db) {
+    await initializeDuckDB();
+  }
+  return db!;
+};
+
 export const getDuckDBConnection = async (): Promise<duckdb.AsyncDuckDBConnection> => {
   if (!db) {
     await initializeDuckDB();
