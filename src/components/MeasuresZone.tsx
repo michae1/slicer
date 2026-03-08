@@ -169,8 +169,9 @@ export function MeasuresZone({ className }: MeasuresZoneProps) {
             <span className="text-xs">Drag numeric fields here</span>
           </div>
         ) : (
-          <div className="text-xs text-purple-600 font-medium bg-purple-50 px-3 py-1 rounded-full border border-purple-100">
-            {measureColumns.length} measure{measureColumns.length > 1 ? 's' : ''} active
+          <div className="text-xs text-purple-600 font-medium bg-purple-50 px-3 py-1.5 rounded-lg border border-purple-100 max-w-full truncate">
+            <span className="opacity-70 mr-1">Metrics:</span>
+            {measureColumns.map(c => `${c.aggregation || 'SUM'}(${c.name})`).join(', ')}
           </div>
         )}
       </div>

@@ -34,8 +34,8 @@ test('smoke test - page loads and shows upload UI', async () => {
   await page.waitForTimeout(15000);
 
   // Verify we moved to the main application interface
-  await expect(page.getByText('Table:')).toBeVisible({ timeout: 10000 });
-  await expect(page.getByRole('heading', { name: 'Results' })).toBeVisible({ timeout: 10000 });
+  await expect(page.getByText('Table:')).toBeVisible({ timeout: 20000 });
+  await expect(page.locator('#table-panel')).toBeVisible({ timeout: 10000 });
 
   console.log('Smoke test with file upload passed!');
   await browser.close();

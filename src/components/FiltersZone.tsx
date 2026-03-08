@@ -330,8 +330,16 @@ export function FiltersZone({
             <span className="text-xs">Drag here</span>
           </div>
         ) : (
-          <div className="text-xs text-green-600 font-medium bg-green-50 px-3 py-1 rounded-full border border-green-100">
-            {filterColumns.length} filter{filterColumns.length > 1 ? 's' : ''} active
+          <div className="text-xs text-green-600 font-medium bg-green-50 px-3 py-1.5 rounded-lg border border-green-100 max-w-full overflow-hidden">
+            <div className="truncate">
+              {filterColumns.map(col => {
+                const values = filterValues[col.name] || [];
+                const preview = values.length > 0 
+                  ? `: ${values.map(v => v.startsWith('range:') ? 'range' : v).slice(0, 2).join(', ')}${values.length > 2 ? '...' : ''}`
+                  : '';
+                return `${col.name}${preview}`;
+              }).join(' | ')}
+            </div>
           </div>
         )}
       </div>

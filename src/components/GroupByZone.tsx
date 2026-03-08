@@ -158,8 +158,9 @@ export function GroupByZone({ className }: GroupByZoneProps) {
             <span className="text-xs">Drag here</span>
           </div>
         ) : (
-          <div className="text-xs text-blue-600 font-medium bg-blue-50 px-3 py-1 rounded-full border border-blue-100">
-            {groupByColumns.length} dimension{groupByColumns.length > 1 ? 's' : ''} active
+          <div className="text-xs text-blue-600 font-medium bg-blue-50 px-3 py-1.5 rounded-lg border border-blue-100 max-w-full truncate">
+            <span className="opacity-70 mr-1">By:</span>
+            {groupByColumns.map(c => c.name).join(', ')}
           </div>
         )}
       </div>
