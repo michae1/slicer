@@ -2,7 +2,7 @@ import { create } from 'zustand';
 import type { DatabaseColumn } from '@/utils/database';
 
 export type DropZone = 'groupBy' | 'filters' | 'measures' | null;
-export type DateGranularity = 'none' | 'hour' | 'day' | 'week' | 'month' | 'year';
+export type DateGranularity = 'none' | 'hour' | 'day' | 'week' | 'month' | 'quarter' | 'year';
 
 export interface MeasureColumn extends DatabaseColumn {
   aggregation?: string;
@@ -19,6 +19,8 @@ interface DragDropState {
   isFiltersExpanded: boolean;
   isMeasuresExpanded: boolean;
   dateGranularity: DateGranularity;
+  hiddenColumns: Set<string>;
+  isSidebarCollapsed: boolean;
 
   // Actions
   setDraggedItem: (item: DatabaseColumn | null) => void;
@@ -38,6 +40,9 @@ interface DragDropState {
   setFiltersExpanded: (expanded: boolean) => void;
   setMeasuresExpanded: (expanded: boolean) => void;
   setDateGranularity: (granularity: DateGranularity) => void;
+  toggleColumnVisibility: (columnName: string) => void;
+  setHiddenColumns: (columnNames: Set<string>) => void;
+  toggleSidebar: () => void;
   collapseAllZones: () => void;
   clearAll: () => void;
 }
@@ -53,6 +58,8 @@ export const useDragDropStore = create<DragDropState>((set, get) => ({
   isFiltersExpanded: false,
   isMeasuresExpanded: false,
   dateGranularity: 'none',
+  hiddenColumns: new Set<string>(),
+  isSidebarCollapsed: false,
 
   setDraggedItem: (item) => set({ draggedItem: item }),
 
@@ -182,6 +189,21 @@ export const useDragDropStore = create<DragDropState>((set, get) => ({
   setFiltersExpanded: (expanded) => set({ isFiltersExpanded: expanded }),
   setMeasuresExpanded: (expanded) => set({ isMeasuresExpanded: expanded }),
   setDateGranularity: (granularity) => set({ dateGranularity: granularity }),
+
+  toggleColumnVisibility: (columnName) => set((state) => {
+    const newHidden = new Set(state.hiddenColumns);
+    if (newHidden.has(columnName)) {
+      newHidden.delete(columnName);
+    } else {
+      newHidden.add(columnName);
+    }
+    return { hiddenColumns: newHidden };
+  }),
+
+  setHiddenColumns: (columnNames) => set({ hiddenColumns: columnNames }),
+
+  toggleSidebar: () => set((state) => ({ isSidebarCollapsed: !state.isSidebarCollapsed })),
+
   collapseAllZones: () => set({ 
     isGroupByExpanded: false, 
     isFiltersExpanded: false,
@@ -196,6 +218,8 @@ export const useDragDropStore = create<DragDropState>((set, get) => ({
     isGroupByExpanded: false,
     isFiltersExpanded: false,
     isMeasuresExpanded: false,
-    dateGranularity: 'none'
+    dateGranularity: 'none',
+    hiddenColumns: new Set<string>(),
+    isSidebarCollapsed: false
   })
 }));

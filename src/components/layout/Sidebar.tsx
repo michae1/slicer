@@ -3,15 +3,13 @@ import { useDraggable } from '@dnd-kit/core';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import type { DatabaseColumn } from '@/utils/database';
-
+import { useDragDropStore } from '@/stores/dragDropStore';
 import { ColumnChip } from '@/components/ColumnChip';
 
 interface SidebarProps {
   columns: DatabaseColumn[];
   onColumnSelect?: (column: DatabaseColumn) => void;
   className?: string;
-  isCollapsed?: boolean;
-  onToggleCollapse?: () => void;
 }
 
 interface DraggableColumnProps {
@@ -50,10 +48,9 @@ function DraggableColumn({ column, activeSection, onColumnSelect }: DraggableCol
 export function Sidebar({
   columns,
   onColumnSelect,
-  className,
-  isCollapsed = false,
-  onToggleCollapse
+  className
 }: SidebarProps) {
+  const { isSidebarCollapsed, toggleSidebar } = useDragDropStore();
   const [activeSection, setActiveSection] = useState<'dimensions' | 'metrics'>('dimensions');
   const [searchQuery, setSearchQuery] = useState('');
 
@@ -78,7 +75,7 @@ export function Sidebar({
     return matchesSearch && matchesCategory;
   });
 
-  if (isCollapsed) {
+  if (isSidebarCollapsed) {
     return (
       <div className={cn('w-12 bg-gray-50 border-r border-gray-200', className)}>
         <div className="flex flex-col h-full">
@@ -86,7 +83,7 @@ export function Sidebar({
             <Button
               variant="ghost"
               size="icon"
-              onClick={onToggleCollapse}
+              onClick={toggleSidebar}
               className="w-8 h-8"
             >
               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -100,7 +97,7 @@ export function Sidebar({
   }
 
   return (
-    <div className={cn('w-80 bg-gray-50 border-r border-gray-200 flex flex-col', className)}>
+    <div className={cn('w-64 bg-gray-50 border-r border-gray-200 flex flex-col', className)}>
       {/* Header */}
       <div className="p-4 border-b border-gray-200">
         <div className="flex items-center justify-between mb-3">
@@ -108,7 +105,7 @@ export function Sidebar({
           <Button
             variant="ghost"
             size="icon"
-            onClick={onToggleCollapse}
+            onClick={toggleSidebar}
             className="w-8 h-8"
           >
             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">

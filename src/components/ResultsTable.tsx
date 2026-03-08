@@ -3,6 +3,7 @@ import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { useDragDropStore } from '@/stores/dragDropStore';
 import type { QueryResult } from '@/utils/database';
+import { ColumnVisibilityToggle } from './ColumnVisibilityToggle';
 
 interface ResultsTableProps {
   result: QueryResult;
@@ -64,7 +65,14 @@ export function ResultsTable({
   const [pageSize, setPageSize] = useState(PAGE_SIZE);
   const [isExporting, setIsExporting] = useState(false);
   const tableContainerRef = useRef<HTMLDivElement>(null);
-  const { collapseAllZones, dateGranularity, setDateGranularity, groupByColumns } = useDragDropStore();
+  const { 
+    collapseAllZones, 
+    dateGranularity, 
+    setDateGranularity, 
+    groupByColumns,
+    hiddenColumns,
+    toggleColumnVisibility
+  } = useDragDropStore();
 
   const hasDateInGroupBy = useMemo(() => {
     return groupByColumns.some(col => {
@@ -75,7 +83,27 @@ export function ResultsTable({
     });
   }, [groupByColumns]);
 
-  const { columns, rows } = result;
+  const { columns: rawColumns, rows: rawRows } = result;
+
+  const { columns, rows } = useMemo(() => {
+    if (hiddenColumns.size === 0) {
+      return { columns: rawColumns, rows: rawRows };
+    }
+
+    const visibleIndices = rawColumns.reduce((acc, name, idx) => {
+      if (!hiddenColumns.has(name)) acc.push(idx);
+      return acc;
+    }, [] as number[]);
+
+    return {
+      columns: visibleIndices.map(idx => rawColumns[idx]),
+      rows: rawRows.map(row => visibleIndices.map(idx => row[idx]))
+    };
+  }, [rawColumns, rawRows, hiddenColumns]);
+
+  const databaseColumns = useMemo(() => {
+    return rawColumns.map(name => ({ name, type: 'VARCHAR' } as any));
+  }, [rawColumns]);
 
   const handleExport = async () => {
     setIsExporting(true);
@@ -279,10 +307,17 @@ export function ResultsTable({
                   <option value="day">Day</option>
                   <option value="week">Week</option>
                   <option value="month">Month</option>
+                  <option value="quarter">Quarter</option>
                   <option value="year">Year</option>
                 </select>
               </div>
             )}
+
+            <ColumnVisibilityToggle
+              columns={databaseColumns}
+              hiddenColumns={hiddenColumns}
+              onToggle={toggleColumnVisibility}
+            />
 
             <Button
               variant="outline"
