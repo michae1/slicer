@@ -55,7 +55,8 @@ function App() {
     filterValues,
     draggedItem,
     dateGranularity,
-    clearAll
+    clearAll,
+    collapseAllZones
   } = useDragDropStore();
 
   const dbManager = DatabaseManager.getInstance();
@@ -353,7 +354,10 @@ function App() {
               </div>
 
               {/* Content Area */}
-              <div className="flex-1 flex flex-col overflow-hidden p-6 space-y-6">
+              <div 
+                className="flex-1 flex flex-col overflow-hidden p-6 space-y-6"
+                onClick={() => collapseAllZones()}
+              >
                 {/* Query Builder Zones */}
                 <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
                   <GroupByZone />

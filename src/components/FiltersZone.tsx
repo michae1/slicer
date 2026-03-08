@@ -318,7 +318,10 @@ export function FiltersZone({
       <div
         ref={setNodeRef}
         id="filters-zone"
-        onClick={() => setFiltersExpanded(!isFiltersExpanded)}
+        onClick={(e) => {
+          e.stopPropagation();
+          setFiltersExpanded(!isFiltersExpanded);
+        }}
         className={cn(
           'p-3 transition-colors touch-none h-[64px] flex items-center justify-center cursor-pointer',
           isOver && 'bg-green-50 border-2 border-dashed border-green-400 rounded-b-lg'
@@ -346,7 +349,10 @@ export function FiltersZone({
 
       {/* Expanded Content Panel - Overlay */}
       {isFiltersExpanded && filterColumns.length > 0 && (
-        <div className="absolute top-[calc(100%+4px)] left-0 right-0 z-[60] bg-white rounded-lg border border-gray-200 shadow-xl p-4 animate-in fade-in slide-in-from-top-2 duration-200 overflow-hidden">
+        <div 
+          onClick={(e) => e.stopPropagation()}
+          className="absolute top-[calc(100%+4px)] left-0 right-0 z-[60] bg-white rounded-lg border border-gray-200 shadow-xl p-4 animate-in fade-in slide-in-from-top-2 duration-200 overflow-hidden"
+        >
           <div className="max-h-[400px] overflow-y-auto pr-1">
             <div className="space-y-4">
               {filterColumns.map((column) => {
