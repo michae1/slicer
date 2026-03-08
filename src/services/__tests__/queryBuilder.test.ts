@@ -1,15 +1,12 @@
 import { QueryBuilderService } from '../queryBuilder';
+import { useDragDropStore } from '@/stores/dragDropStore';
 import type { DatabaseColumn } from '@/utils/database';
+import { shortenType } from '@/utils/dataFormatters';
 
 // Mock the drag-drop store
 jest.mock('@/stores/dragDropStore', () => ({
   useDragDropStore: {
-    getState: jest.fn(() => ({
-      groupByColumns: [],
-      filterColumns: [],
-      measureColumns: [],
-      filterValues: {}
-    }))
+    getState: jest.fn()
   }
 }));
 
@@ -24,6 +21,8 @@ jest.mock('@/utils/validation', () => ({
   }
 }));
 
+const mockGetState = useDragDropStore.getState as jest.Mock;
+
 describe('QueryBuilderService', () => {
   const mockColumns: DatabaseColumn[] = [
     { name: 'id', type: 'INTEGER', nullable: false },
@@ -34,6 +33,13 @@ describe('QueryBuilderService', () => {
 
   beforeEach(() => {
     jest.clearAllMocks();
+    mockGetState.mockReturnValue({
+      groupByColumns: [],
+      filterColumns: [],
+      measureColumns: [],
+      filterValues: {},
+      dateGranularity: 'none'
+    });
   });
 
   describe('generateQuery', () => {
@@ -80,12 +86,12 @@ describe('QueryBuilderService', () => {
 
   describe('generateQuery with grouping', () => {
     beforeEach(() => {
-      const { useDragDropStore } = require('@/stores/dragDropStore');
-      useDragDropStore.getState.mockReturnValue({
+      mockGetState.mockReturnValue({
         groupByColumns: [{ name: 'name', type: 'VARCHAR', nullable: true }],
         filterColumns: [],
         measureColumns: [],
-        filterValues: {}
+        filterValues: {},
+        dateGranularity: 'none'
       });
     });
 
@@ -108,16 +114,16 @@ describe('QueryBuilderService', () => {
 
   describe('generateQuery with grouping and measures', () => {
     beforeEach(() => {
-      const { useDragDropStore } = require('@/stores/dragDropStore');
-      useDragDropStore.getState.mockReturnValue({
+      mockGetState.mockReturnValue({
         groupByColumns: [{ name: 'department', type: 'VARCHAR', nullable: true }],
         filterColumns: [],
         measureColumns: [{ name: 'salary', type: 'DECIMAL', nullable: true, aggregation: 'SUM' }],
-        filterValues: {}
+        filterValues: {},
+        dateGranularity: 'none'
       });
     });
 
-    it('4.3 should generate correct SQL for Measures with default SUM aggregation', () => {
+    it('should generate correct SQL for Measures with default SUM aggregation', () => {
       const result = QueryBuilderService.generateQuery('employees', mockColumns);
 
       // Verify that SUM(salary) as ... is generated
@@ -127,19 +133,17 @@ describe('QueryBuilderService', () => {
   });
 
   describe('generateQuery with filters', () => {
-    beforeEach(() => {
-      const { useDragDropStore } = require('@/stores/dragDropStore');
-      useDragDropStore.getState.mockReturnValue({
+    it('should generate WHERE clause with IN operator', () => {
+      mockGetState.mockReturnValue({
         groupByColumns: [],
         filterColumns: [{ name: 'name', type: 'VARCHAR', nullable: true }],
         measureColumns: [],
         filterValues: {
           name: ['Alice', 'Bob']
-        }
+        },
+        dateGranularity: 'none'
       });
-    });
 
-    it('should generate WHERE clause with IN operator', () => {
       const result = QueryBuilderService.generateQuery('users', mockColumns);
 
       expect(result.sql).toContain('WHERE');
@@ -149,14 +153,14 @@ describe('QueryBuilderService', () => {
     });
 
     it('should escape single quotes in filter values', () => {
-      const { useDragDropStore } = require('@/stores/dragDropStore');
-      useDragDropStore.getState.mockReturnValue({
+      mockGetState.mockReturnValue({
         groupByColumns: [],
         filterColumns: [{ name: 'name', type: 'VARCHAR', nullable: true }],
         measureColumns: [],
         filterValues: {
           name: ["O'Brien"]
-        }
+        },
+        dateGranularity: 'none'
       });
 
       const result = QueryBuilderService.generateQuery('users', mockColumns);
@@ -165,32 +169,131 @@ describe('QueryBuilderService', () => {
     });
 
     it('should handle NULL values in filters', () => {
-      const { useDragDropStore } = require('@/stores/dragDropStore');
-      useDragDropStore.getState.mockReturnValue({
+      mockGetState.mockReturnValue({
         groupByColumns: [],
         filterColumns: [{ name: 'name', type: 'VARCHAR', nullable: true }],
         measureColumns: [],
         filterValues: {
           name: ['']
-        }
+        },
+        dateGranularity: 'none'
       });
 
       const result = QueryBuilderService.generateQuery('users', mockColumns);
 
       expect(result.sql).toContain('NULL');
     });
+
+    it('should generate range filters for date columns', () => {
+      mockGetState.mockReturnValue({
+        groupByColumns: [],
+        filterColumns: [{ name: 'published_at', type: 'TIMESTAMP', nullable: true }],
+        measureColumns: [],
+        filterValues: {
+          published_at: ['range:2024-01-01;2024-12-31']
+        },
+        dateGranularity: 'none'
+      });
+
+      const result = QueryBuilderService.generateQuery('posts', [
+        { name: 'published_at', type: 'TIMESTAMP', nullable: true }
+      ]);
+
+      expect(result.sql).toContain('BETWEEN');
+      expect(result.sql).toContain("'2024-01-01'::TIMESTAMP");
+      expect(result.sql).toContain("'2024-12-31'::TIMESTAMP");
+    });
+
+    it('should handle partial range filters (After only)', () => {
+      mockGetState.mockReturnValue({
+        groupByColumns: [],
+        filterColumns: [{ name: 'published_at', type: 'TIMESTAMP', nullable: true }],
+        measureColumns: [],
+        filterValues: {
+          published_at: ['range:2024-01-01;']
+        },
+        dateGranularity: 'none'
+      });
+
+      const result = QueryBuilderService.generateQuery('posts', [
+        { name: 'published_at', type: 'TIMESTAMP', nullable: true }
+      ]);
+
+      expect(result.sql).toContain('>=');
+      expect(result.sql).toContain("'2024-01-01'::TIMESTAMP");
+      expect(result.sql).not.toContain('BETWEEN');
+    });
+  });
+
+  describe('generateQuery with date granularity', () => {
+    it('should apply DATE_TRUNC to date columns', () => {
+      mockGetState.mockReturnValue({
+        groupByColumns: [{ name: 'created_at', type: 'TIMESTAMP', nullable: true }],
+        filterColumns: [],
+        measureColumns: [],
+        filterValues: {},
+        dateGranularity: 'month'
+      });
+
+      const result = QueryBuilderService.generateQuery('logs', [
+        { name: 'created_at', type: 'TIMESTAMP', nullable: true }
+      ]);
+
+      expect(result.sql).toContain("DATE_TRUNC('month'");
+      expect(result.sql).toContain('"created_at"::TIMESTAMP');
+    });
+
+    it('should handle numeric date columns with TO_TIMESTAMP', () => {
+      mockGetState.mockReturnValue({
+        groupByColumns: [{ name: 'created_at', type: 'BIGINT', nullable: true }],
+        filterColumns: [],
+        measureColumns: [],
+        filterValues: {},
+        dateGranularity: 'month'
+      });
+
+      const result = QueryBuilderService.generateQuery('logs', [
+        { name: 'created_at', type: 'BIGINT', nullable: true }
+      ]);
+
+      expect(result.sql).toContain('CASE');
+      expect(result.sql).toContain('WHEN "created_at" > 1000000000000');
+      expect(result.sql).toContain('TO_TIMESTAMP');
+    });
+  });
+
+  describe('shortenType utility', () => {
+    it('should shorten common types', () => {
+      expect(shortenType('INTEGER')).toBe('INT');
+      expect(shortenType('VARCHAR')).toBe('STR');
+      expect(shortenType('TIMESTAMP')).toBe('TS');
+      expect(shortenType('BIGINT')).toBe('BIG');
+      expect(shortenType('DOUBLE')).toBe('DBL');
+    });
+
+    it('should return original for unknown types', () => {
+      expect(shortenType('BOOLEAN')).toBe('BOOL');
+      expect(shortenType('UNKNOWN_TYPE')).toBe('UNKNOWN_TYPE');
+    });
   });
 
   describe('estimateComplexity', () => {
     it('should estimate low complexity for simple queries', () => {
+      mockGetState.mockReturnValue({
+        groupByColumns: [],
+        filterColumns: [],
+        measureColumns: [],
+        filterValues: {},
+        dateGranularity: 'none'
+      });
+
       const result = QueryBuilderService.generateQuery('users', mockColumns);
 
       expect(result.estimatedComplexity).toBe('low');
     });
 
     it('should warn about many group dimensions', () => {
-      const { useDragDropStore } = require('@/stores/dragDropStore');
-      useDragDropStore.getState.mockReturnValue({
+      mockGetState.mockReturnValue({
         groupByColumns: [
           { name: 'col1', type: 'VARCHAR', nullable: true },
           { name: 'col2', type: 'VARCHAR', nullable: true },
@@ -199,7 +302,8 @@ describe('QueryBuilderService', () => {
         ],
         filterColumns: [],
         measureColumns: [],
-        filterValues: {}
+        filterValues: {},
+        dateGranularity: 'none'
       });
 
       const result = QueryBuilderService.generateQuery('users', mockColumns);

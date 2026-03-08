@@ -37,7 +37,13 @@ export class QueryBuilderService {
     options?: QueryBuilderOptions
   ): GeneratedQuery {
     const opts = { ...this.defaultOptions, ...options };
-    const { groupByColumns, filterColumns, measureColumns, filterValues } = useDragDropStore.getState();
+    const { 
+      groupByColumns, 
+      filterColumns, 
+      measureColumns, 
+      filterValues,
+      dateGranularity 
+    } = useDragDropStore.getState();
 
     const result: GeneratedQuery = {
       sql: '',
@@ -69,15 +75,15 @@ export class QueryBuilderService {
     }
 
     // Build SELECT clause
-    const selectClause = this.buildSelectClause(groupByColumns, measureColumns, columns);
+    const selectClause = this.buildSelectClause(groupByColumns, measureColumns, columns, dateGranularity);
     result.parameters.selectColumns = selectClause.columns;
     
     // Build WHERE clause from filters
-    const whereClause = this.buildWhereClause(filterColumns, filterValues);
+    const whereClause = this.buildWhereClause(filterColumns, filterValues, columns);
     result.parameters.filterConditions = whereClause.conditions;
     
     // Build GROUP BY clause
-    const groupByClause = this.buildGroupByClause(groupByColumns);
+    const groupByClause = this.buildGroupByClause(groupByColumns, dateGranularity);
     
     // Build ORDER BY clause
     const orderByClause = this.buildOrderByClause(result.parameters.orderByColumns, opts.includeOrderBy);
@@ -119,7 +125,8 @@ export class QueryBuilderService {
   private static buildSelectClause(
     groupByColumns: DatabaseColumn[], 
     measureColumns: DatabaseColumn[], 
-    allColumns: DatabaseColumn[]
+    allColumns: DatabaseColumn[],
+    dateGranularity: string = 'none'
   ): {
     sql: string;
     columns: string[];
@@ -138,7 +145,12 @@ export class QueryBuilderService {
 
     // Add group columns
     groupByColumns.forEach(column => {
-      selectParts.push(`"${column.name}"`);
+      if (dateGranularity !== 'none' && this.isDateColumn(column)) {
+        const expression = this.wrapWithDateTrunc(column, dateGranularity);
+        selectParts.push(`${expression} as "${column.name}"`);
+      } else {
+        selectParts.push(`"${column.name}"`);
+      }
       selectColumns.push(column.name);
     });
 
@@ -187,7 +199,47 @@ export class QueryBuilderService {
     };
   }
 
-  private static buildWhereClause(filterColumns: DatabaseColumn[], filterValues: Record<string, string[]>): {
+  private static isDateColumn(column: DatabaseColumn): boolean {
+    const type = column.type.toUpperCase();
+    const name = column.name.toLowerCase();
+    
+    return (
+      type.includes('DATE') || 
+      type.includes('TIMESTAMP') || 
+      type.includes('TIME') ||
+      name.includes('date') || 
+      name.includes('time') || 
+      name.endsWith('_at')
+    );
+  }
+
+  private static wrapWithDateTrunc(column: DatabaseColumn, granularity: string): string {
+    const type = column.type.toUpperCase();
+    let columnExpression = `"${column.name}"`;
+    
+    // If it's stored as a number (Unix timestamp), convert to TIMESTAMP
+    if (type.includes('INT') || type.includes('DOUBLE') || type.includes('FLOAT') || type.includes('NUMERIC')) {
+      // Logic from ResultsTable: JS timestamps (ms) vs Seconds
+      // DuckDB can handle division directly
+      // However, for simplicity and robustness in SQL, we can check if values are large
+      // but standard SQL doesn't have a clean "if" without subqueries for granularity selection
+      // We will assume that if it's numeric and treated as date, it's either seconds or ms
+      // Most common for JS is ms. But DuckDB read_csv_auto often reads as INT/BIGINT.
+      // We'll use a heuristic for TO_TIMESTAMP
+      columnExpression = `CASE 
+        WHEN "${column.name}" > 1000000000000 THEN TO_TIMESTAMP("${column.name}" / 1000)
+        ELSE TO_TIMESTAMP("${column.name}")
+      END`;
+    }
+    
+    return `DATE_TRUNC('${granularity}', ${columnExpression}::TIMESTAMP)`;
+  }
+
+  private static buildWhereClause(
+    filterColumns: DatabaseColumn[], 
+    filterValues: Record<string, string[]>,
+    allColumns: DatabaseColumn[]
+  ): {
     sql: string;
     conditions: Array<{ column: string; values: string[] }>;
   } {
@@ -197,16 +249,40 @@ export class QueryBuilderService {
     Object.entries(filterValues).forEach(([columnName, values]) => {
       if (values.length > 0) {
         conditions.push({ column: columnName, values });
-        
-        // Escape values to prevent SQL injection
-        const escapedValues = values.map(value => {
-          if (value === null || value === undefined || value === '') {
-            return 'NULL';
-          }
-          return `'${String(value).replace(/'/g, "''")}'`;
-        });
+        const column = allColumns.find(col => col.name === columnName);
+        const isDate = column ? this.isDateColumn(column) : false;
 
-        whereParts.push(`"${columnName}" IN (${escapedValues.join(', ')})`);
+        // Check for range search
+        if (isDate && values[0]?.startsWith('range:')) {
+          const [after, before] = values[0].replace('range:', '').split(';');
+          let colExpr = `"${columnName}"`;
+          
+          if (column && ['INTEGER', 'BIGINT', 'DOUBLE', 'FLOAT', 'NUMERIC'].some(t => column.type.toUpperCase().includes(t))) {
+            colExpr = `CASE 
+              WHEN "${columnName}" > 1000000000000 THEN TO_TIMESTAMP("${columnName}" / 1000)
+              ELSE TO_TIMESTAMP("${columnName}")
+            END::TIMESTAMP`;
+          } else if (column) {
+            colExpr = `"${columnName}"::TIMESTAMP`;
+          }
+
+          if (after && before) {
+            whereParts.push(`${colExpr} BETWEEN '${after}'::TIMESTAMP AND '${before}'::TIMESTAMP`);
+          } else if (after) {
+            whereParts.push(`${colExpr} >= '${after}'::TIMESTAMP`);
+          } else if (before) {
+            whereParts.push(`${colExpr} <= '${before}'::TIMESTAMP`);
+          }
+        } else {
+          // Standard IN clause
+          const escapedValues = values.map(value => {
+            if (value === null || value === undefined || value === '') {
+              return 'NULL';
+            }
+            return `'${String(value).replace(/'/g, "''")}'`;
+          });
+          whereParts.push(`"${columnName}" IN (${escapedValues.join(', ')})`);
+        }
       }
     });
 
@@ -216,14 +292,23 @@ export class QueryBuilderService {
     };
   }
 
-  private static buildGroupByClause(groupByColumns: DatabaseColumn[]): {
+  private static buildGroupByClause(
+    groupByColumns: DatabaseColumn[],
+    dateGranularity: string = 'none'
+  ): {
     sql: string;
   } {
     if (groupByColumns.length === 0) {
       return { sql: '' };
     }
 
-    const groupParts = groupByColumns.map(col => `"${col.name}"`);
+    const groupParts = groupByColumns.map(column => {
+      if (dateGranularity !== 'none' && this.isDateColumn(column)) {
+        return this.wrapWithDateTrunc(column, dateGranularity);
+      }
+      return `"${column.name}"`;
+    });
+    
     return {
       sql: groupParts.join(', ')
     };

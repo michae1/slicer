@@ -23,6 +23,7 @@ import { ProgressIndicator, useProgressState } from './components/ProgressIndica
 import { useFileValidation } from './hooks/useFileValidation';
 import { FileProcessor } from './services/fileProcessing';
 import { DatabaseManager } from './utils/database';
+import { QueryBuilderService } from './services/queryBuilder';
 import { MemoryManager } from './utils/memory';
 import { useDragDropStore } from './stores/dragDropStore';
 import { ColumnChip } from './components/ColumnChip';
@@ -50,6 +51,7 @@ function App() {
     measureColumns,
     filterValues,
     draggedItem,
+    dateGranularity,
     clearAll
   } = useDragDropStore();
 
@@ -212,68 +214,25 @@ function App() {
     if (!currentTable || !isDataLoaded) return;
 
     try {
-      let query = '';
-      const whereClauses: string[] = [];
-
-      // Build WHERE clause from filters
-      Object.entries(filterValues).forEach(([colName, selectedValues]) => {
-        if (selectedValues.length > 0) {
-          // Fix: Ensure single quotes are properly escaped for SQL string literals
-          const valuesList = selectedValues.map(v => `'${String(v).replace(/'/g, "''")}'`).join(', ');
-          whereClauses.push(`"${colName}" IN (${valuesList})`);
-        }
-      });
-
-      const wherePart = whereClauses.length > 0 ? `WHERE ${whereClauses.join(' AND ')}` : '';
-
-      const hasGroupBy = groupByColumns.length > 0;
-      const hasMeasures = measureColumns.length > 0;
-
-      if (hasGroupBy || hasMeasures) {
-        // Aggregated view
-        const groupCols = groupByColumns.map(col => `"${col.name}"`);
-        const measureCols = measureColumns.map(col => {
-          const agg = col.aggregation || 'SUM';
-          return `${agg}("${col.name}") as "${col.name} (${agg})"`;
-        });
-        
-        const selectParts = [...groupCols];
-        if (measureCols.length > 0) {
-          selectParts.push(...measureCols);
-        } else {
-          selectParts.push('COUNT(*) as "Count"');
-        }
-
-        const groupClause = hasGroupBy ? `GROUP BY ${groupCols.join(', ')}` : '';
-        const orderClause = hasGroupBy 
-          ? `ORDER BY "${groupByColumns[0].name}" ASC` 
-          : (hasMeasures ? `ORDER BY "${measureColumns[0].name} (${measureColumns[0].aggregation || 'SUM'})" DESC` : '');
-
-        query = `
-          SELECT 
-            ${selectParts.join(',\n            ')}
-          FROM ${currentTable}
-          ${wherePart}
-          ${groupClause}
-          ${orderClause}
-          LIMIT 100
-        `;
-      } else {
-        // Simple filtered view
-        query = `SELECT * FROM ${currentTable} ${wherePart} LIMIT 100`;
+      const startTime = Date.now();
+      const result = QueryBuilderService.generateQuery(currentTable, columns);
+      
+      if (!result.isValid) {
+        console.error('Query generation failed:', result.errors);
+        return;
       }
 
-      console.log('Running analysis query:', query);
-      const startTime = Date.now();
-      const result = await dbManager.executeQuery(query);
+      console.log('Running analysis query:', result.sql);
+      const queryResponse = await dbManager.executeQuery(result.sql);
+      
       setQueryResult({
-        ...result,
+        ...queryResponse,
         executionTime: Date.now() - startTime
       });
     } catch (err) {
       console.error('Analysis query failed:', err);
     }
-  }, [currentTable, isDataLoaded, groupByColumns, measureColumns, filterValues, columns]);
+  }, [currentTable, isDataLoaded, groupByColumns, measureColumns, filterValues, dateGranularity, columns]);
 
   // Re-run analysis when query state changes
   useEffect(() => {
