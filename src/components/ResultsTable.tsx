@@ -64,7 +64,16 @@ export function ResultsTable({
   const [pageSize, setPageSize] = useState(PAGE_SIZE);
   const [isExporting, setIsExporting] = useState(false);
   const tableContainerRef = useRef<HTMLDivElement>(null);
-  const { collapseAllZones } = useDragDropStore();
+  const { collapseAllZones, dateGranularity, setDateGranularity, groupByColumns } = useDragDropStore();
+
+  const hasDateInGroupBy = useMemo(() => {
+    return groupByColumns.some(col => {
+      const type = col.type.toUpperCase();
+      const name = col.name.toLowerCase();
+      return type.includes('DATE') || type.includes('TIMESTAMP') || type.includes('TIME') ||
+             name.includes('date') || name.includes('time') || name.endsWith('_at');
+    });
+  }, [groupByColumns]);
 
   const { columns, rows } = result;
 
@@ -255,6 +264,26 @@ export function ResultsTable({
                 {executionTime.toFixed(2)}ms
               </span>
             )}
+
+            {/* Date Granularity Selector */}
+            {hasDateInGroupBy && (
+              <div className="flex items-center space-x-2 bg-gray-50 border border-gray-200 rounded-md px-2 py-1">
+                <span className="text-xs font-medium text-gray-500 uppercase tracking-wider">Granularity:</span>
+                <select
+                  value={dateGranularity}
+                  onChange={(e) => setDateGranularity(e.target.value as any)}
+                  className="text-xs bg-transparent border-none focus:ring-0 cursor-pointer font-medium text-blue-600"
+                >
+                  <option value="none">None</option>
+                  <option value="hour">Hour</option>
+                  <option value="day">Day</option>
+                  <option value="week">Week</option>
+                  <option value="month">Month</option>
+                  <option value="year">Year</option>
+                </select>
+              </div>
+            )}
+
             <Button
               variant="outline"
               size="sm"

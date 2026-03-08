@@ -1,6 +1,6 @@
-import React from 'react';
 import { cn } from '@/lib/utils';
 import type { DatabaseColumn } from '@/utils/database';
+import { shortenType } from '@/utils/dataFormatters';
 
 interface ColumnChipProps {
     column: DatabaseColumn;
@@ -46,7 +46,7 @@ export function ColumnChip({
         >
             <div className="flex items-center gap-2 min-w-0 flex-1">
                 <span className="text-sm font-medium truncate">{column.name}</span>
-                <span className="text-[10px] opacity-70 whitespace-nowrap">({column.type})</span>
+                <span className="text-[10px] opacity-70 whitespace-nowrap">({shortenType(column.type)})</span>
             </div>
 
             {showRemove && onRemove && (

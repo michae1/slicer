@@ -2,6 +2,7 @@ import { create } from 'zustand';
 import type { DatabaseColumn } from '@/utils/database';
 
 export type DropZone = 'groupBy' | 'filters' | 'measures' | null;
+export type DateGranularity = 'none' | 'hour' | 'day' | 'week' | 'month' | 'year';
 
 export interface MeasureColumn extends DatabaseColumn {
   aggregation?: string;
@@ -17,6 +18,7 @@ interface DragDropState {
   isGroupByExpanded: boolean;
   isFiltersExpanded: boolean;
   isMeasuresExpanded: boolean;
+  dateGranularity: DateGranularity;
 
   // Actions
   setDraggedItem: (item: DatabaseColumn | null) => void;
@@ -35,6 +37,7 @@ interface DragDropState {
   setGroupByExpanded: (expanded: boolean) => void;
   setFiltersExpanded: (expanded: boolean) => void;
   setMeasuresExpanded: (expanded: boolean) => void;
+  setDateGranularity: (granularity: DateGranularity) => void;
   collapseAllZones: () => void;
   clearAll: () => void;
 }
@@ -49,6 +52,7 @@ export const useDragDropStore = create<DragDropState>((set, get) => ({
   isGroupByExpanded: false,
   isFiltersExpanded: false,
   isMeasuresExpanded: false,
+  dateGranularity: 'none',
 
   setDraggedItem: (item) => set({ draggedItem: item }),
 
@@ -177,6 +181,7 @@ export const useDragDropStore = create<DragDropState>((set, get) => ({
   setGroupByExpanded: (expanded) => set({ isGroupByExpanded: expanded }),
   setFiltersExpanded: (expanded) => set({ isFiltersExpanded: expanded }),
   setMeasuresExpanded: (expanded) => set({ isMeasuresExpanded: expanded }),
+  setDateGranularity: (granularity) => set({ dateGranularity: granularity }),
   collapseAllZones: () => set({ 
     isGroupByExpanded: false, 
     isFiltersExpanded: false,
@@ -190,6 +195,7 @@ export const useDragDropStore = create<DragDropState>((set, get) => ({
     filterValues: {},
     isGroupByExpanded: false,
     isFiltersExpanded: false,
-    isMeasuresExpanded: false
+    isMeasuresExpanded: false,
+    dateGranularity: 'none'
   })
 }));

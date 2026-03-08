@@ -331,3 +331,16 @@ export class DataFormatter {
     return 'TEXT';
   }
 }
+
+export const shortenType = (type: string): string => {
+  const upperType = type.toUpperCase();
+  if (upperType === 'INTEGER') return 'INT';
+  if (upperType === 'BIGINT') return 'BIG';
+  if (upperType === 'VARCHAR') return 'STR';
+  if (upperType === 'TIMESTAMP') return 'TS';
+  if (upperType === 'TIMESTAMP WITH TIME ZONE') return 'TZ';
+  if (upperType === 'DOUBLE') return 'DBL';
+  if (upperType === 'BOOLEAN') return 'BOOL';
+  if (upperType.startsWith('DECIMAL')) return 'DEC';
+  return upperType;
+};
