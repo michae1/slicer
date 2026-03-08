@@ -64,8 +64,6 @@ export function ResultsTable({
   const [pageSize, setPageSize] = useState(PAGE_SIZE);
   const [isExporting, setIsExporting] = useState(false);
   const tableContainerRef = useRef<HTMLDivElement>(null);
-  const headerRef = useRef<HTMLDivElement>(null);
-  const bodyScrollRef = useRef<HTMLDivElement>(null);
   const { collapseAllZones } = useDragDropStore();
 
   const { columns, rows } = result;
@@ -244,46 +242,32 @@ export function ResultsTable({
       </div>
 
       {/* Table */}
-      <div className="flex-1 flex flex-col min-h-0">
-        {/* Horizontal scroll header */}
-        <div
-          ref={headerRef}
-          className="overflow-hidden border-b border-gray-200 bg-gray-50"
-        >
-          <table className="min-w-full">
-            <thead>
-              <tr>
-                <th className="px-6 py-3 w-12 sticky left-0 bg-gray-50 z-10 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  #
+      <div className="flex-1 min-h-0 overflow-auto">
+        <table className="min-w-full relative">
+          <thead className="sticky top-0 z-20 bg-gray-50 border-b border-gray-200 shadow-sm">
+            <tr>
+              <th className="px-6 py-3 w-12 sticky left-0 bg-gray-50 z-30 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                #
+              </th>
+              {columns.map((column, index) => (
+                <th
+                  key={index}
+                  className={cn(
+                    'px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider min-w-[150px]',
+                    sortable && 'cursor-pointer hover:bg-gray-200 transition-colors'
+                  )}
+                  onClick={() => handleSort(index)}
+                >
+                  <div className="flex items-center space-x-1">
+                    <span>{column}</span>
+                    {sortable && getSortIcon(index)}
+                  </div>
                 </th>
-                {columns.map((column, index) => (
-                  <th
-                    key={index}
-                    className={cn(
-                      'px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider min-w-[150px]',
-                      sortable && 'cursor-pointer hover:bg-gray-100'
-                    )}
-                    onClick={() => handleSort(index)}
-                  >
-                    <div className="flex items-center space-x-1">
-                      <span>{column}</span>
-                      {sortable && getSortIcon(index)}
-                    </div>
-                  </th>
-                ))}
-              </tr>
-            </thead>
-          </table>
-        </div>
-
-        {/* Scrollable body */}
-        <div
-          ref={bodyScrollRef}
-          className="overflow-auto flex-1"
-        >
-          <table className="min-w-full">
-            <tbody className="bg-white divide-y divide-gray-200">
-              {sortedData.slice(startRow, Math.min(endRow, maxRows)).map((row, relativeIndex) => {
+              ))}
+            </tr>
+          </thead>
+          <tbody className="bg-white divide-y divide-gray-200">
+            {sortedData.slice(startRow, Math.min(endRow, maxRows)).map((row, relativeIndex) => {
                 const rowIndex = startRow + relativeIndex;
                 return (
                   <tr
@@ -312,7 +296,6 @@ export function ResultsTable({
             </tbody>
           </table>
         </div>
-      </div>
 
       {/* Pagination */}
       {rows.length > pageSize && (

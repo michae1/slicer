@@ -1,11 +1,11 @@
 ## Context
 
-Currently, the data explorer features a drag-and-drop interface for "Dimensions" and "Filters". To allow users to compute aggregations, we need a third panel: "Measures" ("Метрики"). This requires updating the drag-and-drop logic to support a new drop zone, adding constraints to the number of items per zone, enforcing data type restrictions, and integrating the dropped items into the query generator logic.
+Currently, the data explorer features a drag-and-drop interface for "Dimensions" and "Filters". To allow users to compute aggregations, we need a third panel: "Measures". This requires updating the drag-and-drop logic to support a new drop zone, adding constraints to the number of items per zone, enforcing data type restrictions, and integrating the dropped items into the query generator logic.
 
 ## Goals / Non-Goals
 
 **Goals:**
-- Implement a third drag-and-drop zone called "Measures" ("Метрики").
+- Implement a third drag-and-drop zone called "Measures".
 - Restrict all 3 panels (Dimensions, Filters, Measures) to a maximum of 5 items each.
 - Restrict the "Measures" panel to accept only fields of type `numeric`.
 - Provide a UI (dropdown) to select an aggregation function for each numeric field in the "Measures" panel.

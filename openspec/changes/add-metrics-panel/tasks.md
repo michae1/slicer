@@ -7,7 +7,7 @@
 
 ## 2. UI Updates
 
-- [x] 2.1 Render the "Метрики" (Measures) drop zone panel directly below the Filters panel.
+- [x] 2.1 Render the Measures drop zone panel directly below the Filters panel.
 - [x] 2.2 For items dropped in the Measures panel, render an aggregation dropdown (SUM, AVG, MIN, MAX, COUNT, etc.).
 - [x] 2.3 Set the default aggregation for new items dropped in the Measures panel to `SUM`.
 - [x] 2.4 Add an `onChange` handler for the aggregation dropdown to update the particular item's aggregation state in the `measures` array.

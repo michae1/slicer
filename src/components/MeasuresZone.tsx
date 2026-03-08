@@ -55,10 +55,10 @@ function SortableMeasureChip({ column, onRemove, onAggregationChange }: Sortable
         showRemove={true}
         showHandle={true}
       />
-      
+
       {/* Aggregation Select */}
       {/* use onPointerDown capture to prevent drag on select click */}
-      <select 
+      <select
         className="text-xs bg-white border border-gray-200 rounded px-1.5 py-1 text-gray-700 w-full hover:border-blue-300 focus:outline-none focus:ring-1 focus:ring-blue-500 cursor-pointer"
         value={column.aggregation || 'SUM'}
         onChange={(e) => onAggregationChange(column.name, e.target.value)}
@@ -118,7 +118,7 @@ export function MeasuresZone({ className }: MeasuresZoneProps) {
               <path d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path>
             </svg>
           </div>
-          <h3 className="text-sm font-semibold text-gray-900">Метрики / Measures</h3>
+          <h3 className="text-sm font-semibold text-gray-900">Measures</h3>
           <span className="text-xs text-gray-500">({measureColumns.length})</span>
         </div>
 
