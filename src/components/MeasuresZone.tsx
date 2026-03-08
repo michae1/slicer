@@ -157,7 +157,10 @@ export function MeasuresZone({ className }: MeasuresZoneProps) {
       <div
         ref={setNodeRef}
         id="measures-zone"
-        onClick={() => setMeasuresExpanded(!isMeasuresExpanded)}
+        onClick={(e) => {
+          e.stopPropagation();
+          setMeasuresExpanded(!isMeasuresExpanded);
+        }}
         className={cn(
           'p-3 transition-colors touch-none h-[64px] flex items-center justify-center cursor-pointer',
           isOver && 'bg-purple-50 border-2 border-dashed border-purple-400 rounded-b-lg'
@@ -169,15 +172,19 @@ export function MeasuresZone({ className }: MeasuresZoneProps) {
             <span className="text-xs">Drag numeric fields here</span>
           </div>
         ) : (
-          <div className="text-xs text-purple-600 font-medium bg-purple-50 px-3 py-1 rounded-full border border-purple-100">
-            {measureColumns.length} measure{measureColumns.length > 1 ? 's' : ''} active
+          <div className="text-xs text-purple-600 font-medium bg-purple-50 px-3 py-1.5 rounded-lg border border-purple-100 max-w-full truncate">
+            <span className="opacity-70 mr-1">Metrics:</span>
+            {measureColumns.map(c => `${c.aggregation || 'SUM'}(${c.name})`).join(', ')}
           </div>
         )}
       </div>
 
       {/* Expanded Content Panel - Overlay */}
       {isMeasuresExpanded && measureColumns.length > 0 && (
-        <div className="absolute top-[calc(100%+4px)] left-0 right-0 z-[60] bg-white rounded-lg border border-gray-200 shadow-xl p-4 animate-in fade-in slide-in-from-top-2 duration-200 overflow-hidden">
+        <div 
+          onClick={(e) => e.stopPropagation()}
+          className="absolute top-[calc(100%+4px)] left-0 right-0 z-[60] bg-white rounded-lg border border-gray-200 shadow-xl p-4 animate-in fade-in slide-in-from-top-2 duration-200 overflow-hidden"
+        >
           <div className="max-h-[300px] overflow-y-auto pr-1">
             <SortableContext
               items={measureColumns.map(col => col.name)}

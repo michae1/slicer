@@ -16,8 +16,7 @@ test.describe("Drag and Drop Functionality", () => {
     await page.setInputFiles('input[type="file"]', filePath);
 
     // Wait for the main app to load
-    // We wait for the "Results" heading which appears after upload
-    await expect(page.getByRole("heading", { name: "Results" })).toBeVisible({
+    await expect(page.getByText(/Table:/i).first()).toBeVisible({
       timeout: 30000,
     });
   });
@@ -78,8 +77,9 @@ test.describe("Drag and Drop Functionality", () => {
 
     // Summary indicator should update (drop successful)
     await expect(
-      groupByZone.getByText("1 dimension active", { exact: true }),
+      groupByZone.getByText(/By:/i),
     ).toBeVisible({ timeout: 10000 });
+    await expect(groupByZone.getByText("department")).toBeVisible();
   });
 
   test("should allow dragging dimensions to Filters zone", async ({ page }) => {
@@ -108,7 +108,7 @@ test.describe("Drag and Drop Functionality", () => {
     await drag(dimensionElement, filtersZone);
 
     await expect(
-      filtersZone.getByText("1 filter active", { exact: true }),
+      filtersZone.getByText("city"),
     ).toBeVisible({ timeout: 10000 });
   });
 

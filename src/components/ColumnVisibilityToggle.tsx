@@ -49,7 +49,7 @@ export function ColumnVisibilityToggle({
             className="fixed inset-0 z-10" 
             onClick={() => setIsOpen(false)} 
           />
-          <div className="absolute right-0 mt-2 w-64 bg-white rounded-lg shadow-xl border border-slate-200 z-20 overflow-hidden flex flex-col max-h-96">
+          <div className="absolute right-0 mt-2 w-64 bg-white rounded-xl shadow-2xl border border-slate-200 z-[100] overflow-hidden flex flex-col max-h-[70vh] ring-1 ring-black/5">
             <div className="p-2 border-bottom border-slate-100">
               <input
                 type="text"

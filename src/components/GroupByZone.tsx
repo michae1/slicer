@@ -146,7 +146,10 @@ export function GroupByZone({ className }: GroupByZoneProps) {
       <div
         ref={setNodeRef}
         id="group-by-zone"
-        onClick={() => setGroupByExpanded(!isGroupByExpanded)}
+        onClick={(e) => {
+          e.stopPropagation();
+          setGroupByExpanded(!isGroupByExpanded);
+        }}
         className={cn(
           'p-3 transition-colors touch-none h-[64px] flex items-center justify-center cursor-pointer',
           isOver && 'bg-blue-50 border-2 border-dashed border-blue-400 rounded-b-lg'
@@ -158,15 +161,19 @@ export function GroupByZone({ className }: GroupByZoneProps) {
             <span className="text-xs">Drag here</span>
           </div>
         ) : (
-          <div className="text-xs text-blue-600 font-medium bg-blue-50 px-3 py-1 rounded-full border border-blue-100">
-            {groupByColumns.length} dimension{groupByColumns.length > 1 ? 's' : ''} active
+          <div className="text-xs text-blue-600 font-medium bg-blue-50 px-3 py-1.5 rounded-lg border border-blue-100 max-w-full truncate">
+            <span className="opacity-70 mr-1">By:</span>
+            {groupByColumns.map(c => c.name).join(', ')}
           </div>
         )}
       </div>
 
       {/* Expanded Content Panel - Overlay */}
       {isGroupByExpanded && groupByColumns.length > 0 && (
-        <div className="absolute top-[calc(100%+4px)] left-0 right-0 z-[60] bg-white rounded-lg border border-gray-200 shadow-xl p-4 animate-in fade-in slide-in-from-top-2 duration-200 overflow-hidden">
+        <div 
+          onClick={(e) => e.stopPropagation()}
+          className="absolute top-[calc(100%+4px)] left-0 right-0 z-[60] bg-white rounded-lg border border-gray-200 shadow-xl p-4 animate-in fade-in slide-in-from-top-2 duration-200 overflow-hidden"
+        >
           <div className="max-h-[300px] overflow-y-auto pr-1">
             <SortableContext
               items={groupByColumns.map(col => col.name)}

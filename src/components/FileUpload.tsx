@@ -10,7 +10,7 @@ interface FileUploadProps {
 export function FileUpload({ 
   onFileSelect, 
   className,
-  accept = '.csv,.parquet,.geojson',
+  accept = '.csv,.parquet',
   disabled = false 
 }: FileUploadProps) {
   const [isDragOver, setIsDragOver] = useState(false);
@@ -112,7 +112,6 @@ export function FileUpload({
             <div className="flex justify-center gap-3 pt-2">
               <span className="px-3 py-1 text-xs rounded-full bg-green-500/20 text-green-300 border border-green-500/30">CSV</span>
               <span className="px-3 py-1 text-xs rounded-full bg-blue-500/20 text-blue-300 border border-blue-500/30">Parquet</span>
-              <span className="px-3 py-1 text-xs rounded-full bg-orange-500/20 text-orange-300 border border-orange-500/30">GeoJSON</span>
             </div>
           </div>
         )}

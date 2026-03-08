@@ -26,7 +26,7 @@ export interface GeneratedQuery {
 
 export class QueryBuilderService {
   private static defaultOptions: QueryBuilderOptions = {
-    defaultLimit: 1000,
+    defaultLimit: 500000,
     includeOrderBy: true,
     enableCaching: true
   };
@@ -42,7 +42,9 @@ export class QueryBuilderService {
       filterColumns, 
       measureColumns, 
       filterValues,
-      dateGranularity 
+      dateGranularity,
+      sortColumn,
+      sortDirection
     } = useDragDropStore.getState();
 
     const result: GeneratedQuery = {
@@ -52,7 +54,9 @@ export class QueryBuilderService {
         groupByColumns: groupByColumns.map(col => col.name),
         measureColumns: measureColumns.map(col => col.name),
         filterConditions: [],
-        orderByColumns: groupByColumns.map(col => col.name),
+        orderByColumns: sortColumn 
+          ? [sortColumn] 
+          : groupByColumns.map(col => col.name),
         limit: opts.defaultLimit
       },
       isValid: true,
@@ -86,7 +90,7 @@ export class QueryBuilderService {
     const groupByClause = this.buildGroupByClause(groupByColumns, dateGranularity);
     
     // Build ORDER BY clause
-    const orderByClause = this.buildOrderByClause(result.parameters.orderByColumns, opts.includeOrderBy);
+    const orderByClause = this.buildOrderByClause(result.parameters.orderByColumns, sortDirection || 'ASC', opts.includeOrderBy, result.parameters.selectColumns);
     
     // Build LIMIT clause
     const limitClause = this.buildLimitClause(opts.defaultLimit);
@@ -314,14 +318,22 @@ export class QueryBuilderService {
     };
   }
 
-  private static buildOrderByClause(orderByColumns?: string[], includeOrderBy: boolean = true): {
+  private static buildOrderByClause(orderByColumns?: string[], direction: string = 'ASC', includeOrderBy: boolean = true, selectColumns?: string[]): {
     sql: string;
   } {
     if (!includeOrderBy || !orderByColumns || orderByColumns.length === 0) {
       return { sql: '' };
     }
 
-    const orderParts = orderByColumns.map(col => `"${col}" ASC`);
+    const validOrderByColumns = selectColumns 
+      ? orderByColumns.filter(col => selectColumns.includes(col))
+      : orderByColumns;
+    
+    if (validOrderByColumns.length === 0) {
+      return { sql: '' };
+    }
+
+    const orderParts = validOrderByColumns.map(col => `"${col}" ${direction.toUpperCase()}`);
     return {
       sql: orderParts.join(', ')
     };
@@ -356,7 +368,7 @@ export class QueryBuilderService {
     return 'high';
   }
 
-  static generateDistinctValuesQuery(tableName: string, columnName: string, limit: number = 1000): string {
+  static generateDistinctValuesQuery(tableName: string, columnName: string, limit: number = 50000): string {
     return `
       SELECT DISTINCT "${columnName}"
       FROM ${tableName}

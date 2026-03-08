@@ -19,6 +19,9 @@ import { GroupByZone } from './components/GroupByZone';
 import { FiltersZone } from './components/FiltersZone';
 import { MeasuresZone } from './components/MeasuresZone';
 import { ResultsTable } from './components/ResultsTable';
+import { ChartPanel } from './components/ChartPanel';
+import { Splitter } from './components/Splitter';
+import { ResizablePanel } from './components/ResizablePanel';
 import { ProgressIndicator, useProgressState } from './components/ProgressIndicator';
 import { useFileValidation } from './hooks/useFileValidation';
 import { FileProcessor } from './services/fileProcessing';
@@ -52,7 +55,10 @@ function App() {
     filterValues,
     draggedItem,
     dateGranularity,
-    clearAll
+    clearAll,
+    collapseAllZones,
+    sortColumn,
+    sortDirection
   } = useDragDropStore();
 
   const dbManager = DatabaseManager.getInstance();
@@ -140,7 +146,7 @@ function App() {
 
     setIsLoadingValues(prev => ({ ...prev, [columnName]: true }));
     try {
-      const query = `SELECT DISTINCT "${columnName}" FROM ${currentTable} WHERE "${columnName}" IS NOT NULL ORDER BY "${columnName}" LIMIT 100`;
+      const query = `SELECT DISTINCT "${columnName}" FROM ${currentTable} WHERE "${columnName}" IS NOT NULL ORDER BY "${columnName}" LIMIT 50000`;
       const result = await dbManager.executeQuery(query);
       const values = result.rows.map(row => String(row[0]));
 
@@ -232,7 +238,7 @@ function App() {
     } catch (err) {
       console.error('Analysis query failed:', err);
     }
-  }, [currentTable, isDataLoaded, groupByColumns, measureColumns, filterValues, dateGranularity, columns]);
+  }, [currentTable, isDataLoaded, groupByColumns, measureColumns, filterValues, dateGranularity, columns, sortColumn, sortDirection]);
 
   // Re-run analysis when query state changes
   useEffect(() => {
@@ -262,24 +268,24 @@ function App() {
                 Data Explorer
               </h1>
               <p className="text-xl text-purple-200 max-w-2xl mx-auto">
-                Transform your data into insights. Upload CSV, Parquet, or GeoJSON files and explore with powerful queries — all in your browser.
+                Transform your data into insights. Upload CSV or Parquet files and explore with powerful queries — all in your browser.
               </p>
             </div>
 
-            <div className="flex justify-center gap-8 mb-12">
+            <div className="grid grid-cols-3 gap-8 mb-12 max-w-2xl mx-auto">
               {[
                 { icon: 'M13 10V3L4 14h7v7l9-11h-7z', label: 'Fast', desc: 'In-browser processing' },
                 { icon: 'M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z', label: 'Secure', desc: 'Data stays local' },
                 { icon: 'M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z', label: 'Powerful', desc: 'SQL queries' },
               ].map((item, i) => (
-                <div key={i} className="text-center">
-                  <div className="w-12 h-12 rounded-xl bg-white/10 flex items-center justify-center mx-auto mb-3">
-                    <svg className="w-6 h-6 text-purple-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <div key={i} className="text-center group">
+                  <div className="w-14 h-14 rounded-2xl bg-white/10 flex items-center justify-center mx-auto mb-4 transition-all duration-300 group-hover:bg-white/20 group-hover:scale-110 group-hover:shadow-xl group-hover:shadow-purple-500/20">
+                    <svg className="w-7 h-7 text-purple-200" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d={item.icon} />
                     </svg>
                   </div>
-                  <p className="text-white font-medium">{item.label}</p>
-                  <p className="text-purple-300 text-sm">{item.desc}</p>
+                  <p className="text-white font-bold text-lg mb-1 tracking-tight">{item.label}</p>
+                  <p className="text-purple-300/80 text-sm leading-tight px-2">{item.desc}</p>
                 </div>
               ))}
             </div>
@@ -350,7 +356,10 @@ function App() {
               </div>
 
               {/* Content Area */}
-              <div className="flex-1 flex flex-col overflow-hidden p-6 space-y-6">
+              <div 
+                className="flex-1 flex flex-col overflow-hidden p-6 space-y-6"
+                onClick={() => collapseAllZones()}
+              >
                 {/* Query Builder Zones */}
                 <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
                   <GroupByZone />
@@ -361,21 +370,34 @@ function App() {
                   <MeasuresZone />
                 </div>
 
-                {/* Results */}
-                <div className="flex-1 min-h-0 overflow-hidden">
+                {/* Results - Split View */}
+                <div className="flex-1 min-h-0 flex bg-white rounded-lg border border-gray-200 overflow-hidden shadow-sm">
                   {queryResult ? (
-                    <ResultsTable
-                      result={queryResult}
-                      className="h-full"
-                      sortable={true}
-                      executionTime={queryResult.executionTime}
-                    />
+                    <>
+                      {/* Left: Chart Panel */}
+                      <ResizablePanel id="chart-panel">
+                        <ChartPanel result={queryResult} />
+                      </ResizablePanel>
+
+                      {/* Middle: Splitter */}
+                      <Splitter />
+
+                      {/* Right: Table Panel */}
+                      <ResizablePanel id="table-panel" className="flex-1">
+                        <ResultsTable
+                          result={queryResult}
+                          className="h-full w-full"
+                          sortable={true}
+                          executionTime={queryResult.executionTime}
+                        />
+                      </ResizablePanel>
+                    </>
                   ) : (
-                    <div className="bg-white rounded-lg border border-gray-200 p-8 text-center">
-                      <div className="text-4xl mb-4">📊</div>
-                      <h3 className="text-lg font-medium text-gray-900 mb-2">No Query Results</h3>
-                      <p className="text-gray-600">
-                        Start building your query by dragging dimensions to Group By or Filters
+                    <div className="flex-1 bg-white p-12 text-center flex flex-col items-center justify-center">
+                      <div className="text-6xl mb-6 grayscale opacity-20">📊</div>
+                      <h3 className="text-xl font-bold text-slate-900 mb-2 leading-tight">No Query Results Yet</h3>
+                      <p className="max-w-xs text-slate-500 text-sm leading-relaxed">
+                        Drag columns into **Group By** or **Measures** above to build your visualization and see the results.
                       </p>
                     </div>
                   )}
