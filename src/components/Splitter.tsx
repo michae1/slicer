@@ -49,7 +49,12 @@ export const Splitter: React.FC = () => {
         isChartCollapsed && "hover:bg-blue-300 w-2"
       )}
     >
-      <div className="absolute left-1/2 top-1/2 h-8 w-1 -translate-x-1/2 -translate-y-1/2 rounded-full bg-gray-400 opacity-0 transition-opacity group-hover:opacity-100" />
+      {/* Draggable indicator - Vertical dots */}
+      <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 flex flex-col items-center gap-1 group-hover:scale-110 transition-transform">
+        <div className="w-1 h-1 rounded-full bg-slate-400 group-hover:bg-blue-600 shadow-sm" />
+        <div className="w-1 h-1 rounded-full bg-slate-400 group-hover:bg-blue-600 shadow-sm" />
+        <div className="w-1 h-1 rounded-full bg-slate-400 group-hover:bg-blue-600 shadow-sm" />
+      </div>
     </div>
   );
 };

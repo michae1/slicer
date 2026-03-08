@@ -2,7 +2,7 @@ export interface FileInfo {
   name: string;
   size: number;
   type: string;
-  format: 'csv' | 'parquet' | 'geojson' | 'unknown';
+  format: 'csv' | 'parquet' | 'unknown';
   lastModified: number;
 }
 
@@ -34,9 +34,6 @@ export class FileProcessor {
       case 'parquet':
         format = 'parquet';
         break;
-      case 'geojson':
-        format = 'geojson';
-        break;
     }
 
     return {
@@ -65,11 +62,8 @@ export class FileProcessor {
         await this.createTableFromCSV(file, tableName, dbManager);
         break;
       case 'parquet':
-        // TODO: Implement parquet loading
-        throw new Error('Parquet support not yet implemented');
-      case 'geojson':
-        // TODO: Implement GeoJSON loading
-        throw new Error('GeoJSON support not yet implemented');
+        await this.createTableFromParquet(file, tableName, dbManager);
+        break;
       default:
         throw new Error(`Unsupported format: ${fileInfo.format}`);
     }
@@ -184,23 +178,40 @@ export class FileProcessor {
     return 'VARCHAR';
   }
 
-  private static async createParquetTable(file: File, tableName: string): Promise<string> {
-    const blobUrl = URL.createObjectURL(file);
-    return `
-      CREATE OR REPLACE TABLE ${tableName} AS 
-      SELECT * FROM read_parquet('${blobUrl}');
+  private static async createTableFromParquet(file: File, tableName: string, dbManager: any): Promise<void> {
+    const db = await getDuckDB();
+    await db.registerFileHandle(file.name, file, duckdb.DuckDBDataProtocol.BROWSER_FILEREADER, true);
+
+    const safeFileName = file.name.replace(/'/g, "''");
+    const createTableSQL = `
+      CREATE TABLE IF NOT EXISTS ${tableName} AS 
+      SELECT * FROM read_parquet('${safeFileName}');
     `;
+
+    try {
+      await dbManager.executeQuery(createTableSQL);
+    } finally {
+      await db.dropFile(file.name).catch(() => {});
+    }
   }
 
-  private static async createGeoJSONTable(file: File, tableName: string): Promise<string> {
-    const blobUrl = URL.createObjectURL(file);
-    return `
-      CREATE OR REPLACE TABLE ${tableName} AS 
-      SELECT * FROM read_json_auto('${blobUrl}', 
-        format='newline_delimited',
-        ignore_errors=true
-      );
+  private static async createTableFromGeoJSON(file: File, tableName: string, dbManager: any): Promise<void> {
+    const db = await getDuckDB();
+    await db.registerFileHandle(file.name, file, duckdb.DuckDBDataProtocol.BROWSER_FILEREADER, true);
+
+    const safeFileName = file.name.replace(/'/g, "''");
+    // For GeoJSON we use read_json_auto and enable the spatial extension if available
+    // Note: DuckDB WASM automatically detects GeoJSON structure in many cases
+    const createTableSQL = `
+      CREATE TABLE IF NOT EXISTS ${tableName} AS 
+      SELECT * FROM read_json_auto('${safeFileName}');
     `;
+
+    try {
+      await dbManager.executeQuery(createTableSQL);
+    } finally {
+      await db.dropFile(file.name).catch(() => {});
+    }
   }
 
   // removed parseCSVLine

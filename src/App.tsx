@@ -266,7 +266,7 @@ function App() {
                 Data Explorer
               </h1>
               <p className="text-xl text-purple-200 max-w-2xl mx-auto">
-                Transform your data into insights. Upload CSV, Parquet, or GeoJSON files and explore with powerful queries — all in your browser.
+                Transform your data into insights. Upload CSV or Parquet files and explore with powerful queries — all in your browser.
               </p>
             </div>
 
@@ -382,25 +382,12 @@ function App() {
 
                       {/* Right: Table Panel */}
                       <ResizablePanel id="table-panel" className="flex-1">
-                        <div className="h-full flex flex-col">
-                           {/* Table Header */}
-                           <div className="flex items-center justify-between border-b px-4 py-2 bg-slate-50/50">
-                              <h3 className="text-sm font-semibold text-slate-700 uppercase tracking-wider flex items-center gap-2">
-                                <span>📋</span> Results Table
-                              </h3>
-                              <div className="text-xs text-slate-400 font-mono">
-                                {queryResult.executionTime}ms
-                              </div>
-                           </div>
-                           <div className="flex-1 overflow-hidden relative">
-                              <ResultsTable
-                                result={queryResult}
-                                className="h-full w-full"
-                                sortable={true}
-                                executionTime={queryResult.executionTime}
-                              />
-                           </div>
-                        </div>
+                        <ResultsTable
+                          result={queryResult}
+                          className="h-full w-full"
+                          sortable={true}
+                          executionTime={queryResult.executionTime}
+                        />
                       </ResizablePanel>
                     </>
                   ) : (

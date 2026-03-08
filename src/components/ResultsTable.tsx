@@ -273,15 +273,17 @@ export function ResultsTable({
       className={cn('bg-white rounded-lg border border-gray-200 flex flex-col cursor-default', className)}
     >
       {/* Header */}
-      <div className="px-4 md:px-6 py-4 border-b border-gray-200">
-        <div className="flex items-center justify-between flex-wrap gap-2">
-          <div>
-            <h3 className="text-lg font-semibold text-gray-900">Results</h3>
-            <p className="text-sm text-gray-600">
+      <div className="px-4 py-2.5 border-b border-gray-100 bg-white relative z-[60] shrink-0">
+        <div className="flex items-center justify-between gap-4">
+          <div className="min-w-0 flex-1">
+            <h3 className="text-base font-bold text-gray-900 truncate flex items-center gap-2">
+              <span>📋</span> Results
+            </h3>
+            <p className="text-xs text-gray-500 truncate">
               {rows.length.toLocaleString()} rows • {columns.length} columns
               {rows.length > maxRows && (
-                <span className="ml-2 text-yellow-600">
-                  (showing first {maxRows.toLocaleString()})
+                <span className="ml-1 text-yellow-600 font-medium">
+                  (first {maxRows.toLocaleString()})
                 </span>
               )}
             </p>
@@ -343,14 +345,15 @@ export function ResultsTable({
                 <th
                   key={index}
                   className={cn(
-                    'px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider min-w-[150px]',
-                    sortable && 'cursor-pointer hover:bg-gray-200 transition-colors'
+                    'px-6 py-3 text-left text-[10px] font-bold text-gray-400 uppercase tracking-wider min-w-[150px] max-w-[300px]',
+                    sortable && 'cursor-pointer hover:bg-gray-100 transition-colors'
                   )}
                   onClick={() => handleSort(index)}
+                  title={column}
                 >
-                  <div className="flex items-center space-x-1">
-                    <span>{column}</span>
-                    {sortable && getSortIcon(index)}
+                  <div className="flex items-center space-x-1 min-w-0 overflow-hidden">
+                    <span className="truncate flex-1">{column}</span>
+                    {sortable && <div className="shrink-0 opacity-50">{getSortIcon(index)}</div>}
                   </div>
                 </th>
               ))}
