@@ -142,22 +142,48 @@ export function ResultsTable({
     });
   }, [rows, columns, sortState]);
 
-  const formatValue = (value: any): string => {
+  const formatValue = (value: any, columnName?: string): string => {
     if (value === null || value === undefined) return 'NULL';
 
-    if (typeof value === 'number') {
+    if (value instanceof Date) {
+      return value.toLocaleString();
+    }
+
+    if (typeof value === 'object' && typeof value.getTime === 'function') {
+      // DuckDB sometimes returns date-like objects
+      return value.toLocaleString();
+    }
+
+    if (typeof value === 'number' || typeof value === 'bigint') {
+      const numValue = Number(value);
+      
+      const isDateColumn = columnName && (
+        columnName.toLowerCase().includes('date') || 
+        columnName.toLowerCase().includes('time') || 
+        columnName.toLowerCase().endsWith('_at')
+      );
+      
+      if (isDateColumn) {
+        // Handle common JS timestamp bounds (roughly year 2000 to 2100)
+        const isMs = numValue > 1000000000000 && numValue < 4102444800000;
+        const isSec = numValue > 1000000000 && numValue < 4102444800;
+        
+        if (isMs) return new Date(numValue).toLocaleString();
+        if (isSec) return new Date(numValue * 1000).toLocaleString();
+      }
+
       // Format large numbers with commas
-      if (value >= 1000000) {
-        return value.toLocaleString();
+      if (numValue >= 1000000 || numValue <= -1000000) {
+        return numValue.toLocaleString();
       }
       // Format decimals
-      if (value % 1 !== 0) {
-        return value.toLocaleString(undefined, {
+      if (numValue % 1 !== 0) {
+        return numValue.toLocaleString(undefined, {
           minimumFractionDigits: 2,
           maximumFractionDigits: 6
         });
       }
-      return value.toLocaleString();
+      return numValue.toLocaleString();
     }
 
     if (typeof value === 'boolean') {
@@ -286,7 +312,7 @@ export function ResultsTable({
                         )}
                       >
                         <div className="max-w-xs truncate" title={String(cell || 'NULL')}>
-                          {formatValue(cell)}
+                          {formatValue(cell, columns[cellIndex])}
                         </div>
                       </td>
                     ))}
