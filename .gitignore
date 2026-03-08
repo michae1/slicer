@@ -33,3 +33,4 @@ test-results
 .github/prompts
 .github/skills
 node_modules
+.playwright-cli

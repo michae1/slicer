@@ -35,11 +35,48 @@ interface AdaptiveChartProps {
 
 
 export const AdaptiveChart: React.FC<AdaptiveChartProps> = ({ result }) => {
-  const { chartType, xAxis, yAxis } = useChartStore();
+  const { chartType, xAxis, yAxis, topN } = useChartStore();
 
   const data = useMemo(() => {
-    return mapQueryResultToChartData(result, xAxis, yAxis);
-  }, [result, xAxis, yAxis]);
+    let resultData = mapQueryResultToChartData(result, xAxis, yAxis);
+    if (topN && topN > 0) {
+      resultData = resultData.slice(0, topN);
+    }
+    return resultData;
+  }, [result, xAxis, yAxis, topN]);
+ 
+  const formatXAxisTick = (value: any) => {
+    if (value === null || value === undefined) return 'NULL';
+    
+    // Handle Date objects
+    if (value instanceof Date) {
+      return value.toLocaleDateString();
+    }
+    
+    // Handle DuckDB style timestamps or numbers treated as dates
+    if (typeof value === 'number' || typeof value === 'bigint') {
+       const num = Number(value);
+       const isDateColumn = xAxis && (
+         xAxis.toLowerCase().includes('date') ||
+         xAxis.toLowerCase().includes('time') ||
+         xAxis.toLowerCase().endsWith('_at')
+       );
+       
+       if (isDateColumn) {
+         const isMs = num > 1000000000000 && num < 4102444800000;
+         const isSec = num > 1000000000 && num < 4102444800;
+         if (isMs) return new Date(num).toLocaleDateString();
+         if (isSec) return new Date(num * 1000).toLocaleDateString();
+       }
+       return num.toLocaleString();
+    }
+    
+    if (typeof value === 'string' && value.length > 20) {
+      return value.substring(0, 17) + '...';
+    }
+    
+    return String(value);
+  };
 
   if (!xAxis || yAxis.length === 0) {
     return (
@@ -61,6 +98,7 @@ export const AdaptiveChart: React.FC<AdaptiveChartProps> = ({ result }) => {
             fontSize={11} 
             tick={{ fill: '#64748b' }} 
             axisLine={{ stroke: '#e2e8f0' }} 
+            tickFormatter={formatXAxisTick}
           />
           <YAxis 
             fontSize={11} 
@@ -71,6 +109,7 @@ export const AdaptiveChart: React.FC<AdaptiveChartProps> = ({ result }) => {
           <Tooltip 
             contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 10px 15px -3px rgba(0,0,0,0.1)' }}
             cursor={{ fill: '#f8fafc' }}
+            labelFormatter={formatXAxisTick}
           />
           <Legend wrapperStyle={{ fontSize: '11px', paddingTop: '10px' }} />
           {yAxis.map((measure, index) => (
@@ -98,6 +137,7 @@ export const AdaptiveChart: React.FC<AdaptiveChartProps> = ({ result }) => {
             fontSize={11} 
             tick={{ fill: '#64748b' }} 
             axisLine={{ stroke: '#e2e8f0' }} 
+            tickFormatter={formatXAxisTick}
           />
           <YAxis 
             fontSize={11} 
@@ -107,6 +147,7 @@ export const AdaptiveChart: React.FC<AdaptiveChartProps> = ({ result }) => {
           />
           <Tooltip 
             contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 10px 15px -3px rgba(0,0,0,0.1)' }}
+            labelFormatter={formatXAxisTick}
           />
           <Legend wrapperStyle={{ fontSize: '11px', paddingTop: '10px' }} />
           {yAxis.map((measure, index) => (
@@ -157,6 +198,7 @@ export const AdaptiveChart: React.FC<AdaptiveChartProps> = ({ result }) => {
           </Pie>
           <Tooltip 
             contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 10px 15px -3px rgba(0,0,0,0.1)' }}
+            labelFormatter={formatXAxisTick}
           />
           <Legend wrapperStyle={{ fontSize: '11px', paddingTop: '10px' }} />
         </PieChart>

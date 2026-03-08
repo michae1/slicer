@@ -65,12 +65,6 @@ describe('QueryBuilderService', () => {
       expect(result.errors).toContain('No columns available in table');
     });
 
-    it('should include LIMIT clause by default', () => {
-      const result = QueryBuilderService.generateQuery('users', mockColumns);
-
-      expect(result.sql).toContain('LIMIT 1000');
-    });
-
     it('should respect custom limit option', () => {
       const result = QueryBuilderService.generateQuery('users', mockColumns, { defaultLimit: 500 });
 

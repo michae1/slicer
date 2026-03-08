@@ -54,24 +54,23 @@ export function ResultsTable({
   className,
   sortable = true,
   onSort,
-  maxRows = 10000,
+  maxRows = 100000000,
   executionTime
 }: ResultsTableProps) {
-  const [sortState, setSortState] = useState<SortState>({
-    column: null,
-    direction: null
-  });
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(PAGE_SIZE);
   const [isExporting, setIsExporting] = useState(false);
   const tableContainerRef = useRef<HTMLDivElement>(null);
-  const { 
-    collapseAllZones, 
-    dateGranularity, 
-    setDateGranularity, 
+  const {
+    collapseAllZones,
+    dateGranularity,
+    setDateGranularity,
     groupByColumns,
     hiddenColumns,
-    toggleColumnVisibility
+    toggleColumnVisibility,
+    sortColumn,
+    sortDirection,
+    setSort
   } = useDragDropStore();
 
   const hasDateInGroupBy = useMemo(() => {
@@ -79,7 +78,7 @@ export function ResultsTable({
       const type = col.type.toUpperCase();
       const name = col.name.toLowerCase();
       return type.includes('DATE') || type.includes('TIMESTAMP') || type.includes('TIME') ||
-             name.includes('date') || name.includes('time') || name.endsWith('_at');
+        name.includes('date') || name.includes('time') || name.endsWith('_at');
     });
   }, [groupByColumns]);
 
@@ -125,13 +124,9 @@ export function ResultsTable({
 
     const column = columns[columnIndex];
     const newDirection: 'asc' | 'desc' =
-      sortState.column === column && sortState.direction === 'asc' ? 'desc' : 'asc';
+      sortColumn === column && sortDirection === 'asc' ? 'desc' : 'asc';
 
-    setSortState({
-      column,
-      direction: newDirection
-    });
-
+    setSort(column, newDirection);
     onSort?.(column, newDirection);
   };
 
@@ -148,36 +143,8 @@ export function ResultsTable({
   };
 
   // Memoized sorted data
-  const sortedData = useMemo(() => {
-    if (!sortState.column || !sortState.direction) {
-      return rows;
-    }
-
-    const columnIndex = columns.indexOf(sortState.column);
-    if (columnIndex === -1) return rows;
-
-    return [...rows].sort((a, b) => {
-      const aVal = a[columnIndex];
-      const bVal = b[columnIndex];
-
-      // Handle null values
-      if (aVal === null || aVal === undefined) return sortState.direction === 'asc' ? -1 : 1;
-      if (bVal === null || bVal === undefined) return sortState.direction === 'asc' ? 1 : -1;
-
-      // Handle numeric values
-      if (typeof aVal === 'number' && typeof bVal === 'number') {
-        return sortState.direction === 'asc' ? aVal - bVal : bVal - aVal;
-      }
-
-      // Handle string values
-      const aStr = String(aVal).toLowerCase();
-      const bStr = String(bVal).toLowerCase();
-
-      if (aStr < bStr) return sortState.direction === 'asc' ? -1 : 1;
-      if (aStr > bStr) return sortState.direction === 'asc' ? 1 : -1;
-      return 0;
-    });
-  }, [rows, columns, sortState]);
+  // Data is now sorted by the database based on global sort state
+  const tableData = rows;
 
   const formatValue = (value: any, columnName?: string): string => {
     if (value === null || value === undefined) return 'NULL';
@@ -193,18 +160,18 @@ export function ResultsTable({
 
     if (typeof value === 'number' || typeof value === 'bigint') {
       const numValue = Number(value);
-      
+
       const isDateColumn = columnName && (
-        columnName.toLowerCase().includes('date') || 
-        columnName.toLowerCase().includes('time') || 
+        columnName.toLowerCase().includes('date') ||
+        columnName.toLowerCase().includes('time') ||
         columnName.toLowerCase().endsWith('_at')
       );
-      
+
       if (isDateColumn) {
         // Handle common JS timestamp bounds (roughly year 2000 to 2100)
         const isMs = numValue > 1000000000000 && numValue < 4102444800000;
         const isSec = numValue > 1000000000 && numValue < 4102444800;
-        
+
         if (isMs) return new Date(numValue).toLocaleString();
         if (isSec) return new Date(numValue * 1000).toLocaleString();
       }
@@ -236,7 +203,7 @@ export function ResultsTable({
 
   const getSortIcon = (columnIndex: number) => {
     const column = columns[columnIndex];
-    if (sortState.column !== column) {
+    if (sortColumn !== column) {
       return (
         <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16V4m0 0L3 8m4-4l4 4m6 0v12m0 0l4-4m-4 4l-4-4" />
@@ -244,7 +211,7 @@ export function ResultsTable({
       );
     }
 
-    return sortState.direction === 'asc' ? (
+    return sortDirection === 'asc' ? (
       <svg className="w-4 h-4 text-blue-600" fill="currentColor" viewBox="0 0 20 20">
         <path fillRule="evenodd" d="M14.707 12.707a1 1 0 01-1.414 0L10 9.414l-3.293 3.293a1 1 0 01-1.414-1.414l4-4a1 1 0 011.414 0l4 4a1 1 0 010 1.414z" clipRule="evenodd" />
       </svg>
@@ -273,7 +240,7 @@ export function ResultsTable({
       className={cn('bg-white rounded-lg border border-gray-200 flex flex-col cursor-default', className)}
     >
       {/* Header */}
-      <div className="px-4 py-2.5 border-b border-gray-100 bg-white relative z-[60] shrink-0">
+      <div className="px-4 py-2.5 border-b border-gray-100 bg-white relative z-20 shrink-0">
         <div className="flex items-center justify-between gap-4">
           <div className="min-w-0 flex-1">
             <h3 className="text-base font-bold text-gray-900 truncate flex items-center gap-2">
@@ -336,9 +303,9 @@ export function ResultsTable({
       {/* Table */}
       <div className="flex-1 min-h-0 overflow-auto">
         <table className="min-w-full relative">
-          <thead className="sticky top-0 z-20 bg-gray-50 border-b border-gray-200 shadow-sm">
+          <thead className="sticky top-0 z-10 bg-gray-50 border-b border-gray-200 shadow-sm">
             <tr>
-              <th className="px-6 py-3 w-12 sticky left-0 bg-gray-50 z-30 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+              <th className="px-6 py-3 w-12 sticky left-0 bg-gray-50 z-[12] text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                 #
               </th>
               {columns.map((column, index) => (
@@ -360,35 +327,35 @@ export function ResultsTable({
             </tr>
           </thead>
           <tbody className="bg-white divide-y divide-gray-200">
-            {sortedData.slice(startRow, Math.min(endRow, maxRows)).map((row, relativeIndex) => {
-                const rowIndex = startRow + relativeIndex;
-                return (
-                  <tr
-                    key={rowIndex}
-                    className="hover:bg-gray-50 transition-colors"
-                  >
-                    <td className="px-6 py-4 w-12 sticky left-0 bg-white z-10 text-sm font-medium text-gray-900">
-                      {rowIndex + 1}
+            {tableData.slice(startRow, Math.min(endRow, maxRows)).map((row, relativeIndex) => {
+              const rowIndex = startRow + relativeIndex;
+              return (
+                <tr
+                  key={rowIndex}
+                  className="hover:bg-gray-50 transition-colors"
+                >
+                  <td className="px-6 py-4 w-12 sticky left-0 bg-white z-[5] text-sm font-medium text-gray-900">
+                    {rowIndex + 1}
+                  </td>
+                  {row.map((cell, cellIndex) => (
+                    <td
+                      key={cellIndex}
+                      className={cn(
+                        'px-6 py-4 text-sm min-w-[150px]',
+                        cell === null || cell === undefined ? 'text-gray-400 italic' : 'text-gray-900'
+                      )}
+                    >
+                      <div className="max-w-xs truncate" title={String(cell || 'NULL')}>
+                        {formatValue(cell, columns[cellIndex])}
+                      </div>
                     </td>
-                    {row.map((cell, cellIndex) => (
-                      <td
-                        key={cellIndex}
-                        className={cn(
-                          'px-6 py-4 text-sm min-w-[150px]',
-                          cell === null || cell === undefined ? 'text-gray-400 italic' : 'text-gray-900'
-                        )}
-                      >
-                        <div className="max-w-xs truncate" title={String(cell || 'NULL')}>
-                          {formatValue(cell, columns[cellIndex])}
-                        </div>
-                      </td>
-                    ))}
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
-        </div>
+                  ))}
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      </div>
 
       {/* Pagination */}
       {rows.length > pageSize && (
@@ -462,13 +429,13 @@ export function ResultsTable({
             Query executed in <span className="font-medium">{executionTime.toFixed(2)}ms</span>
           </p>
         )}
-        {sortState.column && sortState.direction && (
+        {sortColumn && sortDirection && (
           <p>
-            Sorted by <span className="font-medium">{sortState.column}</span> in{' '}
-            <span className="font-medium">{sortState.direction}</span>ending order
+            Sorted by <span className="font-medium">{sortColumn}</span> in{' '}
+            <span className="font-medium">{sortDirection}</span>ending order
           </p>
         )}
-        {!sortState.column && (
+        {!sortColumn && (
           <p>Click column headers to sort • Use filters to refine results</p>
         )}
       </div>

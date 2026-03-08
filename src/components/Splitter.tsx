@@ -45,7 +45,7 @@ export const Splitter: React.FC = () => {
       onPointerDown={onPointerDown}
       data-testid="layout-splitter"
       className={cn(
-        "w-1 group relative z-50 h-screen cursor-col-resize select-none bg-gray-200 transition-colors hover:bg-blue-400 active:bg-blue-500",
+        "w-1 group relative z-50 h-full cursor-col-resize select-none bg-gray-200 transition-colors hover:bg-blue-400 active:bg-blue-500",
         isChartCollapsed && "hover:bg-blue-300 w-2"
       )}
     >

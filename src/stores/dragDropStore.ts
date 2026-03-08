@@ -21,6 +21,8 @@ interface DragDropState {
   dateGranularity: DateGranularity;
   hiddenColumns: Set<string>;
   isSidebarCollapsed: boolean;
+  sortColumn: string | null;
+  sortDirection: 'asc' | 'desc' | null;
 
   // Actions
   setDraggedItem: (item: DatabaseColumn | null) => void;
@@ -44,6 +46,7 @@ interface DragDropState {
   setHiddenColumns: (columnNames: Set<string>) => void;
   toggleSidebar: () => void;
   collapseAllZones: () => void;
+  setSort: (column: string | null, direction: 'asc' | 'desc' | null) => void;
   clearAll: () => void;
 }
 
@@ -60,6 +63,8 @@ export const useDragDropStore = create<DragDropState>((set, get) => ({
   dateGranularity: 'none',
   hiddenColumns: new Set<string>(),
   isSidebarCollapsed: false,
+  sortColumn: null,
+  sortDirection: null,
 
   setDraggedItem: (item) => set({ draggedItem: item }),
 
@@ -203,6 +208,7 @@ export const useDragDropStore = create<DragDropState>((set, get) => ({
   setHiddenColumns: (columnNames) => set({ hiddenColumns: columnNames }),
 
   toggleSidebar: () => set((state) => ({ isSidebarCollapsed: !state.isSidebarCollapsed })),
+  setSort: (column, direction) => set({ sortColumn: column, sortDirection: direction }),
 
   collapseAllZones: () => set({ 
     isGroupByExpanded: false, 
@@ -220,6 +226,8 @@ export const useDragDropStore = create<DragDropState>((set, get) => ({
     isMeasuresExpanded: false,
     dateGranularity: 'none',
     hiddenColumns: new Set<string>(),
-    isSidebarCollapsed: false
+    isSidebarCollapsed: false,
+    sortColumn: null,
+    sortDirection: null
   })
 }));

@@ -56,7 +56,9 @@ function App() {
     draggedItem,
     dateGranularity,
     clearAll,
-    collapseAllZones
+    collapseAllZones,
+    sortColumn,
+    sortDirection
   } = useDragDropStore();
 
   const dbManager = DatabaseManager.getInstance();
@@ -144,7 +146,7 @@ function App() {
 
     setIsLoadingValues(prev => ({ ...prev, [columnName]: true }));
     try {
-      const query = `SELECT DISTINCT "${columnName}" FROM ${currentTable} WHERE "${columnName}" IS NOT NULL ORDER BY "${columnName}" LIMIT 1000`;
+      const query = `SELECT DISTINCT "${columnName}" FROM ${currentTable} WHERE "${columnName}" IS NOT NULL ORDER BY "${columnName}" LIMIT 50000`;
       const result = await dbManager.executeQuery(query);
       const values = result.rows.map(row => String(row[0]));
 
@@ -236,7 +238,7 @@ function App() {
     } catch (err) {
       console.error('Analysis query failed:', err);
     }
-  }, [currentTable, isDataLoaded, groupByColumns, measureColumns, filterValues, dateGranularity, columns]);
+  }, [currentTable, isDataLoaded, groupByColumns, measureColumns, filterValues, dateGranularity, columns, sortColumn, sortDirection]);
 
   // Re-run analysis when query state changes
   useEffect(() => {

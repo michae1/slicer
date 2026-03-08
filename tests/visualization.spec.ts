@@ -39,8 +39,12 @@ test.describe("Visualization E2E", () => {
     await sidebar.getByRole("button", { name: /Metrics/i }).click();
     await dragFromSidebar(page, "age", "#measures-zone");
 
-    // Bar
-    await expect(page.locator('.recharts-bar')).toBeVisible({ timeout: 10000 });
+    // Wait for chart to render - check for recharts wrapper
+    await expect(page.locator('.recharts-wrapper')).toBeVisible({ timeout: 10000 });
+
+    // Bar - check that bar elements exist
+    const bars = page.locator('.recharts-bar');
+    await expect(bars).toHaveCount(1);
 
     // Line
     await page.getByTestId('chart-type-line').click();

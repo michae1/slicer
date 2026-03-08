@@ -6,6 +6,8 @@ A client‑side simplified data explorer built with React and DuckDB WASM. Uploa
 
 ---
 
+![alt text](image.png)
+
 ## Features
 
 - CSV file upload and parsing

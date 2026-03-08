@@ -9,6 +9,7 @@ interface ChartState {
   yAxis: string[];
   colorBy: string | null;
   isEnabled: boolean;
+  topN: number | null;
 
   // Actions
   setChartType: (type: ChartType) => void;
@@ -17,6 +18,7 @@ interface ChartState {
   toggleYAxis: (columnName: string) => void;
   setColorBy: (columnName: string | null) => void;
   setIsEnabled: (enabled: boolean) => void;
+  setTopN: (n: number | null) => void;
   resetChart: () => void;
 }
 
@@ -28,6 +30,7 @@ export const useChartStore = create<ChartState>()(
       yAxis: [],
       colorBy: null,
       isEnabled: true,
+      topN: 10, // Default to top 10
 
       setChartType: (chartType) => set({ chartType }),
       setXAxis: (xAxis) => set({ xAxis }),
@@ -42,11 +45,13 @@ export const useChartStore = create<ChartState>()(
       }),
       setColorBy: (colorBy) => set({ colorBy }),
       setIsEnabled: (isEnabled) => set({ isEnabled }),
+      setTopN: (topN) => set({ topN }),
       resetChart: () => set({
         chartType: 'bar',
         xAxis: null,
         yAxis: [],
         colorBy: null,
+        topN: 10,
       }),
     }),
     {

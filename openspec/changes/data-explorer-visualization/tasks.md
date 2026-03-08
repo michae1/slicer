@@ -28,3 +28,5 @@
 - [x] 5.1 Ensure smooth transitions when collapsing/expanding panels
 - [x] 5.2 Verify layout persistence after page reloads
 - [x] 5.3 Fine-tune chart aesthetics (colors, padding, tooltips) to match project style
+- [x] 5.4 Implement Top N limiting for charts to handle large datasets
+- [x] 5.5 Synchronize table sorting with chart data using global state

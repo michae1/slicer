@@ -4,7 +4,7 @@ import { useDragDropStore } from '@/stores/dragDropStore';
 import { cn } from '@/utils/cn';
 
 export const AxisSelector: React.FC = () => {
-  const { xAxis, yAxis, setXAxis, toggleYAxis } = useChartStore();
+  const { xAxis, yAxis, setXAxis, toggleYAxis, topN, setTopN } = useChartStore();
   const { groupByColumns, measureColumns } = useDragDropStore();
 
   return (
@@ -65,6 +65,31 @@ export const AxisSelector: React.FC = () => {
               );
             })
           )}
+        </div>
+      </div>
+
+      {/* TOP N LIMITING */}
+      <div className="space-y-2 border-t border-slate-100 pt-4">
+        <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest pl-1 flex items-center gap-1.5">
+          <span className="w-1.5 h-1.5 rounded-full bg-slate-400" />
+          Limit (Top N)
+        </label>
+        <div className="flex items-center gap-3 px-1">
+          <input
+            type="number"
+            min="1"
+            max="1000"
+            value={topN || ''}
+            onChange={(e) => {
+              const val = e.target.value === '' ? null : parseInt(e.target.value, 10);
+              setTopN(val);
+            }}
+            placeholder="No limit"
+            className="w-20 px-3 py-1.5 bg-white border-2 border-slate-200 rounded-lg text-xs font-semibold text-slate-700 focus:border-blue-500 focus:outline-none transition-colors"
+          />
+          <span className="text-[10px] text-slate-400 font-medium">
+            Limits rows by current sort
+          </span>
         </div>
       </div>
     </div>
