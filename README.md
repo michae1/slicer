@@ -1,6 +1,6 @@
 # Data Explorer
 
-A client‑side simplified data explorer built with React and DuckDB WASM. Upload CSV (and eventually Parquet/GeoJSON) and query your data in the browser.
+A client‑side simplified data explorer built with React and DuckDB WASM. Upload CSV (and eventually Parquet) and query your data in the browser.
 
 **Live demo:** https://slicer-ckzv.vercel.app/
 
